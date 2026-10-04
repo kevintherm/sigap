@@ -3,10 +3,12 @@ reply (handoff records, reminders, usage log). Channel adapters only translate m
 import os
 import time
 from dataclasses import dataclass
+from datetime import datetime
 
 from sqlmodel import select
 
 from . import agent, channels
+from .config import WIB
 from .db import session_scope
 from .models import Student
 from .services import (handoffs_for_student, issue_api_token, log_message, next_reference, record_handoff,
@@ -17,6 +19,16 @@ def use_llm_agent() -> bool:
     """SIGAP_AGENT=langflow: Gemini (Langflow "sigap_agent" flow) understands messages; otherwise keyword rules."""
     from .langflow_client import backend_name
     return os.environ.get("SIGAP_AGENT", "rules") == "langflow" and backend_name() == "langflow"
+
+
+# A conversation starts fresh after this much silence, and at midnight WIB, so "that assignment" never reaches back
+# into an old conversation. Real wall-clock time, not the pinned demo clock.
+IDLE_RESET_HOURS = float(os.environ.get("SIGAP_SESSION_IDLE_HOURS", "6"))
+
+
+def _stale(last_active: float, now: float) -> bool:
+    day = lambda ts: datetime.fromtimestamp(ts, WIB).date()  # noqa: E731
+    return now - last_active > IDLE_RESET_HOURS * 3600 or day(last_active) != day(now)
 
 
 def _t(lang: str, id_text: str, en_text: str) -> str:
@@ -50,7 +62,12 @@ class ChatService:
         return s, student
 
     def message(self, who: Who, text: str, lang_hint: str | None = None) -> dict:
+        key, now = (who.channel, who.external_id), time.time()
+        old = self.sessions.get(key)
+        if old and _stale(old.last_active, now):  # new agent memory; the language choice carries over
+            self.sessions[key] = agent.Session(lang=old.lang)
         s, student = self._session(who, lang_hint)
+        s.last_active = now
         t0 = time.perf_counter()
         if use_llm_agent():
             from .langflow_client import tool_backend

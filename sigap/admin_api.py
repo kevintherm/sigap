@@ -474,6 +474,52 @@ def upload_document(body: DocumentIn, bg: BackgroundTasks, user: User = Depends(
     return {"id": d.id, "sections": info["sections"], "active": d.active}
 
 
+class FormatIn(BaseModel):
+    filename: str = Field(default="", max_length=200)
+    content_b64: str | None = Field(default=None, max_length=12_000_000)  # an uploaded file
+    text: str | None = Field(default=None, max_length=500_000)  # or pasted text
+    title_id: str = Field(min_length=3, max_length=200)
+    title_en: str = Field(default="", max_length=200)
+    institution: str = Field(default="", max_length=200)
+    version: str = Field(min_length=1, max_length=20)
+    effective: date
+
+
+@router.post("/documents/format")
+def start_format(body: FormatIn, user: User = Depends(ADMIN)):
+    """Starts the formatting agent on an uploaded handbook; poll GET /documents/format/{job} for the draft."""
+    import base64
+    from . import handbook_formatter as hf
+    from .langflow_client import LangflowError, backend_name, tool_backend
+    if backend_name() != "langflow":
+        raise HTTPException(503, "Agen format butuh Langflow, yang belum terhubung.")
+    try:
+        if body.content_b64:
+            text = hf.extract_text(body.filename, base64.b64decode(body.content_b64, validate=True))
+        else:
+            text = body.text or ""
+    except (hf.FormatError, ValueError) as e:
+        raise HTTPException(422, str(e)) from None
+    if len(text.strip()) < 50:
+        raise HTTPException(422, "Dokumen hampir kosong; tidak ada yang bisa diformat.")
+    lf = tool_backend()
+
+    def run_flow(t: str) -> str:
+        try:
+            return lf.run_text(hf.FORMATTER_FLOW, t)
+        except LangflowError as e:
+            raise hf.FormatError(f"Langflow tidak menjawab: {e}") from None
+
+    meta = body.model_dump(include={"title_id", "title_en", "institution", "version"}) | {"effective": body.effective.isoformat()}
+    return {"job": hf.start_job(text, meta, run_flow)}
+
+
+@router.get("/documents/format/{job_id}")
+def format_status(job_id: str, user: User = Depends(ADMIN)):
+    from . import handbook_formatter as hf
+    return hf.job(job_id) or _404()
+
+
 def _activate(db: Session, d: Document):
     for other in db.exec(select(Document).where(Document.active == True)).all():  # noqa: E712
         other.active = False

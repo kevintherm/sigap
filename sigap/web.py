@@ -17,7 +17,7 @@ from fastapi import FastAPI
 from fastapi.responses import FileResponse, RedirectResponse
 from fastapi.staticfiles import StaticFiles
 
-from . import channels, sync, telegram_bot
+from . import channels, retention, sync, telegram_bot
 from .admin_api import router as admin_router
 from .student_api import router as student_router
 from .db import migrate, session_scope
@@ -46,13 +46,24 @@ async def reminder_loop():
         await asyncio.sleep(5)
 
 
+async def retention_loop():
+    """Deletes chat text and records past their retention limits (UU PDP), every 10 minutes."""
+    while True:
+        try:
+            done = await asyncio.get_running_loop().run_in_executor(None, retention.run_once)
+            log.info("retention: %s", done)
+        except Exception:
+            log.exception("retention loop")
+        await asyncio.sleep(600)
+
+
 @contextlib.asynccontextmanager
 async def lifespan(_app: FastAPI):
     migrate()
     log.info("Sigap backend · tools via %s", backend_name())
     asyncio.get_running_loop().run_in_executor(None, sync.push_reference_data)
     async with mcp.session_manager.run():
-        tasks = [asyncio.create_task(reminder_loop())]
+        tasks = [asyncio.create_task(reminder_loop()), asyncio.create_task(retention_loop())]
         if bot := telegram_bot.start_if_configured():
             tasks.append(bot)
         try:

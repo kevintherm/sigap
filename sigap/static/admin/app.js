@@ -33,7 +33,7 @@ async function api(method, path, body) {
   }
   return data;
 }
-async function guard(fn, okMsg) { try { const r = await fn(); if (okMsg) toast(okMsg); return r; } catch (e) { toast('⚠️ ' + e.message); throw e; } }
+async function guard(fn, okMsg) { try { const r = await fn(); if (okMsg) toast(okMsg); return r; } catch (e) { toast('Gagal: ' + e.message); throw e; } }
 function formData(form) {
   const o = {};
   for (const [k, v] of new FormData(form)) { if (k.endsWith('[]')) (o[k.slice(0, -2)] ||= []).push(v); else o[k] = v; }
@@ -59,22 +59,22 @@ function courseChecks(selected = [], only = null) {
 
 // ------------------------------------------------------------ routes
 const ROUTES = [
-  { id: 'inbox', label: '📥 Kotak masuk', roles: ['admin', 'staff'], render: viewInbox },
-  { id: 'dashboard', label: '📊 Dasbor', roles: ['admin', 'staff'], render: viewDashboard },
-  { id: 'students', label: '🎓 Mahasiswa', roles: ['admin', 'staff'], render: viewStudents },
-  { id: 'schedule', label: '📅 Jadwal & tenggat', roles: ['admin', 'staff', 'lecturer'], render: viewSchedule },
-  { id: 'calendar', label: '🗓️ Kalender akademik', roles: ['admin', 'staff', 'lecturer'], render: viewCalendar },
-  { id: 'handbook', label: '📖 Pedoman', roles: ['admin', 'staff', 'lecturer'], render: viewHandbook },
-  { id: 'users', label: '👥 Pengguna', roles: ['admin'], render: viewUsers },
-  { id: 'testchat', label: '💬 Uji chat', roles: ['admin', 'staff', 'lecturer'], render: viewTestChat },
-  { id: 'account', label: '🔑 Akun saya', roles: ['admin', 'staff', 'lecturer'], render: viewAccount },
+  { id: 'inbox', label: 'Kotak masuk', roles: ['admin', 'staff'], render: viewInbox },
+  { id: 'dashboard', label: 'Dasbor', roles: ['admin', 'staff'], render: viewDashboard },
+  { id: 'students', label: 'Mahasiswa', roles: ['admin', 'staff'], render: viewStudents },
+  { id: 'schedule', label: 'Jadwal & tenggat', roles: ['admin', 'staff', 'lecturer'], render: viewSchedule },
+  { id: 'calendar', label: 'Kalender akademik', roles: ['admin', 'staff', 'lecturer'], render: viewCalendar },
+  { id: 'handbook', label: 'Pedoman', roles: ['admin', 'staff', 'lecturer'], render: viewHandbook },
+  { id: 'users', label: 'Pengguna', roles: ['admin'], render: viewUsers },
+  { id: 'testchat', label: 'Uji chat', roles: ['admin', 'staff', 'lecturer'], render: viewTestChat },
+  { id: 'account', label: 'Akun saya', roles: ['admin', 'staff', 'lecturer'], render: viewAccount },
 ];
 
 function renderNav(counts = {}) {
   const nav = $('#nav'); nav.innerHTML = '';
   for (const r of ROUTES.filter(r => can(...r.roles))) {
     const a = el(`<a href="#${r.id}" class="${S.route === r.id ? 'active' : ''}">${r.label}${r.id === 'inbox' && counts.open ? `<span class="count">${counts.open}</span>` : ''}</a>`);
-    a.onclick = () => $('.nav').classList.remove('open');
+    a.onclick = () => setMenu(false);
     nav.append(a);
   }
 }
@@ -82,7 +82,7 @@ async function go() {
   const allowed = ROUTES.filter(r => can(...r.roles));
   const r = allowed.find(r => r.id === location.hash.slice(1)) || allowed[0];
   S.route = r.id; clearInterval(S.poll);
-  $('#title').textContent = r.label.replace(/^\S+\s/, '');
+  $('#title').textContent = r.label;
   renderNav(S.counts);
   const view = $('#view'); view.innerHTML = '<p class="muted">Memuat…</p>';
   try { await r.render(view); } catch (e) { view.innerHTML = `<p class="error">${esc(e.message)}</p>`; }
@@ -96,8 +96,16 @@ $('#login-form').onsubmit = async e => {
   try { S.me = await api('POST', '/auth/login', formData(e.target)); e.target.reset(); await start(); }
   catch (x) { $('#login-error').textContent = x.message; }
 };
-$('#logout').onclick = async () => { await api('POST', '/auth/logout'); S.me = null; showLogin(); };
-$('#menu').onclick = () => $('.nav').classList.toggle('open');
+$('#logout').onclick = async () => { try { await guard(() => api('POST', '/auth/logout')); } catch { } S.me = null; showLogin(); };
+function setMenu(open) {
+  const nav = $('.nav'), btn = $('#menu');
+  if (nav.classList.contains('open') === open) return;
+  nav.classList.toggle('open', open); btn.setAttribute('aria-expanded', String(open));
+  if (open) setTimeout(() => $('#nav a')?.focus(), 50); else if (getComputedStyle(btn).display !== 'none') btn.focus();
+}
+$('#menu').onclick = () => setMenu(!$('.nav').classList.contains('open'));
+document.addEventListener('keydown', e => { if (e.key === 'Escape' && $('.nav').classList.contains('open')) setMenu(false); });
+document.addEventListener('click', e => { if ($('.nav').classList.contains('open') && !e.target.closest('.nav, #menu')) setMenu(false); });
 
 async function start() {
   $('#login').hidden = true; $('#app').hidden = false;
@@ -110,7 +118,8 @@ async function start() {
 async function refreshSync() {
   try {
     const s = await api('GET', '/sync');
-    $('#sync').innerHTML = `<span class="dot ${s.ok ? 'ok' : s.ok === false ? 'bad' : ''}"></span><span class="txt">Langflow: ${esc(s.detail)}${s.last_sync ? ' · ' + esc(s.last_sync.slice(11, 16)) : ''}</span>` +
+    const short = s.ok ? 'Sinkron' : s.ok === false ? 'Gagal sinkron' : 'Belum sinkron';
+    $('#sync').innerHTML = `<span class="dot ${s.ok ? 'ok' : s.ok === false ? 'bad' : ''}"></span><span class="txt">Langflow: ${esc(s.detail)}${s.last_sync ? ' · ' + esc(s.last_sync.slice(11, 16)) : ''}</span><span class="short">${short}</span>` +
       (can('admin', 'staff') ? ' <button class="btn ghost small" id="sync-now">Sinkronkan</button>' : '');
     const b = $('#sync-now'); if (b) b.onclick = async () => { await guard(() => api('POST', '/sync')); refreshSync(); };
   } catch { }
@@ -129,25 +138,25 @@ async function viewInbox(view) {
       .map(([k, l]) => `<button class="${filter === k ? 'on' : ''}" data-f="${k}">${l} · ${k ? (data.counts[k] || 0) : total}</button>`).join('');
     $('#tabs').querySelectorAll('button').forEach(b => b.onclick = () => { filter = b.dataset.f; loadList(); });
     $('#list').innerHTML = data.items.length ? `<table><thead><tr><th>Tiket</th><th>Pertanyaan</th><th>Status</th></tr></thead><tbody>${data.items.map(h => `
-      <tr class="click ${selected === h.id ? 'selected' : ''}" data-id="${h.id}"><td><code>${esc(h.reference)}</code><div class="muted small">${fmtDT(h.created_at)}</div></td>
+      <tr class="click ${selected === h.id ? 'selected' : ''}" data-id="${h.id}"><td><button type="button" class="rowlink" aria-label="Buka tiket ${esc(h.reference)}"><code>${esc(h.reference)}</code></button><div class="muted small">${fmtDT(h.created_at)}</div></td>
       <td>${esc(h.question.slice(0, 110))}<div class="muted small">${esc(h.student ? h.student.name : 'Belum terhubung')} · ${esc(CHANNELS[h.channel] || h.channel)}</div></td>
       <td><span class="badge ${h.status}">${STATUS[h.status]}</span></td></tr>`).join('')}</tbody></table>`
-      : '<p class="muted" style="padding:16px">Tidak ada tiket di sini.</p>';
-    $('#list').querySelectorAll('tr[data-id]').forEach(tr => tr.onclick = () => { selected = +tr.dataset.id; loadDetail(); loadList(); });
+      : `<p class="muted" style="padding:16px">${filter ? `Tidak ada tiket berstatus ${STATUS[filter]}.` : 'Belum ada tiket.'} Tiket muncul di sini saat mahasiswa meneruskan pertanyaan yang tidak terjawab dari chat.</p>`;
+    $('#list').querySelectorAll('tr[data-id]').forEach(tr => tr.onclick = () => { selected = +tr.dataset.id; guard(loadDetail).catch(() => { }); loadList(); });
   }
   async function loadDetail() {
     const h = await api('GET', `/handoffs/${selected}`);
     const d = $('#detail');
     d.innerHTML = `
       <div class="row"><code>${esc(h.reference)}</code><span class="badge ${h.status}">${STATUS[h.status]}</span><span class="spacer"></span>
-        <select id="status" style="width:auto">${Object.entries(STATUS).map(([k, v]) => `<option value="${k}" ${k === h.status ? 'selected' : ''}>${v}</option>`).join('')}</select>
+        <select id="status" class="small" style="width:auto" aria-label="Status tiket">${Object.entries(STATUS).map(([k, v]) => `<option value="${k}" ${k === h.status ? 'selected' : ''}>${v}</option>`).join('')}</select>
         <button class="btn small" id="mine">Ambil</button></div>
       <p class="question">${esc(h.question)}</p>
-      <p class="muted small">${h.student ? `🎓 ${esc(h.student.name)} · NIM ${esc(h.student.number)}` : '🎓 Belum terhubung ke data mahasiswa'} · ${esc(CHANNELS[h.channel] || h.channel)} ·
+      <p class="muted small">${h.student ? `${esc(h.student.name)} · NIM ${esc(h.student.number)}` : 'Belum terhubung ke data mahasiswa'} · ${esc(CHANNELS[h.channel] || h.channel)} ·
         ${esc(h.office)} · ${esc(h.category)} · ${h.language === 'en' ? 'English' : 'Bahasa Indonesia'}</p>
       <h3>Riwayat</h3>
       <div class="timeline">${h.events.map(e => `<div class="event ${e.kind}"><div class="meta">${fmtDT(e.at)} · ${esc(e.by || 'Sigap')} ·
-        ${e.kind === 'reply' ? (e.delivered ? 'balasan terkirim ✓' : 'balasan TIDAK terkirim') : e.kind === 'note' ? 'catatan internal' : 'status'}</div>
+        ${e.kind === 'reply' ? (e.delivered ? 'balasan terkirim' : 'balasan TIDAK terkirim') : e.kind === 'note' ? 'catatan internal' : 'status'}</div>
         ${e.kind === 'status' ? `→ ${esc(STATUS[e.body] || e.body)}` : esc(e.body)}</div>`).join('')}</div>
       <h3>Balas mahasiswa</h3>
       ${h.can_reply ? '' : `<p class="muted small">Balasan langsung tidak tersedia untuk kanal ini${h.channel === 'mcp' ? ' (mahasiswa melihatnya lewat get_my_tickets)' : ''}; balasan tetap disimpan.</p>`}
@@ -161,7 +170,7 @@ async function viewInbox(view) {
     $('#send', d).onclick = async () => {
       const body = $('#reply', d).value.trim(); if (!body) return;
       const r = await guard(() => api('POST', `/handoffs/${h.id}/reply`, { body }));
-      toast(r.delivered ? 'Balasan terkirim ke mahasiswa ✓' : 'Balasan disimpan, tetapi tidak terkirim (kanal tidak aktif)');
+      toast(r.delivered ? 'Balasan terkirim ke mahasiswa' : 'Balasan disimpan, tetapi tidak terkirim (kanal tidak aktif)');
       loadDetail(); loadList();
     };
     $('#addnote', d).onclick = async () => { const body = $('#note', d).value.trim(); if (!body) return; await guard(() => api('POST', `/handoffs/${h.id}/notes`, { body }), 'Catatan disimpan'); loadDetail(); };
@@ -176,7 +185,7 @@ const TOOLS = { answer_campus_policy: 'Aturan kampus', get_my_deadlines: 'Tengga
   create_study_reminder: 'Pengingat', escalate_to_student_services: 'Teruskan ke staf' };
 function hbars(obj, labels = {}) {
   const entries = Object.entries(obj).sort((a, b) => b[1] - a[1]);
-  if (!entries.length) return '<p class="muted small">Belum ada data.</p>';
+  if (!entries.length) return '<p class="muted small">Belum ada percakapan dalam 14 hari terakhir. Coba kirim pertanyaan lewat Uji chat.</p>';
   const max = Math.max(...entries.map(e => e[1]));
   return `<div class="hbars">${entries.map(([k, v]) => `<div class="hbar"><span>${esc(labels[k] || k)}</span>
     <div class="track"><div class="fill" style="width:${(v / max * 100).toFixed(1)}%"></div></div><span class="val">${v}</span></div>`).join('')}</div>`;
@@ -210,12 +219,17 @@ async function viewDashboard(view) {
   const open = (d.handoffs.open || 0) + (d.handoffs.in_progress || 0);
   const nf = d.outcomes.not_found || 0;
   view.innerHTML = `
-    <div class="tiles">
+    <div class="lead-grid">
+      <div class="card lead"><div class="k">Pertanyaan tidak terjawab (14 hari)</div><div class="v">${nf}</div>
+        <p class="muted small" style="margin:0 0 8px">${d.total ? Math.round(nf / d.total * 100) : 0}% pesan. Pertanyaan yang berulang menunjukkan bagian pedoman yang perlu ditambah.</p>
+        ${d.unanswered.length ? `<table><tbody>${d.unanswered.map(u => `<tr><td>${esc(u.question)}</td><td class="muted small">${fmtDT(u.at)}</td></tr>`).join('')}</tbody></table>` : '<p class="muted small">Belum ada pertanyaan yang tidak terjawab dalam 14 hari terakhir.</p>'}</div>
+      <div class="card lead"><div class="k">Tiket aktif</div><div class="v">${open}</div>
+        <p class="muted small" style="margin:0 0 12px">Terbuka atau sedang diproses.</p><a class="btn small" href="#inbox">Buka kotak masuk</a></div>
+    </div>
+    <div class="tiles minor">
       <div class="tile"><div class="k">Pesan (14 hari)</div><div class="v">${d.total}</div><div class="s">dari semua kanal</div></div>
-      <div class="tile"><div class="k">Mahasiswa terhubung</div><div class="v">${d.linked_students}<span class="muted" style="font-size:15px"> / ${d.students}</span></div><div class="s">punya akun chat tertaut</div></div>
-      <div class="tile"><div class="k">Tiket aktif</div><div class="v">${open}</div><div class="s">terbuka + diproses</div></div>
-      <div class="tile"><div class="k">Tidak terjawab</div><div class="v">${nf}</div><div class="s">${d.total ? Math.round(nf / d.total * 100) : 0}% pesan · lihat daftar di bawah</div></div>
-      <div class="tile"><div class="k">Waktu respons</div><div class="v">${d.p50_ms ?? '–'}<span class="muted" style="font-size:14px"> ms</span></div><div class="s">median · p95 ${d.p95_ms ?? '–'} ms</div></div>
+      <div class="tile"><div class="k">Mahasiswa terhubung</div><div class="v">${d.linked_students} / ${d.students}</div><div class="s">punya akun chat tertaut</div></div>
+      <div class="tile"><div class="k">Waktu respons (median)</div><div class="v">${d.p50_ms ?? '–'} ms</div><div class="s">p95 ${d.p95_ms ?? '–'} ms</div></div>
     </div>
     <div class="grid-2">
       <div class="card"><h2>Pesan per hari</h2><div id="chart"></div>
@@ -223,8 +237,6 @@ async function viewDashboard(view) {
         ${d.per_day.map(x => `<tr><td>${fmtDate(x.date)}</td><td class="num">${x.count}</td></tr>`).join('')}</tbody></table></details></div>
       <div class="card"><h2>Hasil percakapan</h2>${hbars(d.outcomes, OUTCOMES)}<h3>Kanal</h3>${hbars(d.channels, CHANNELS)}<h3>Bahasa</h3>${hbars(d.languages, { id: 'Bahasa Indonesia', en: 'English' })}</div>
       <div class="card"><h2>Alat yang dipakai</h2>${hbars(d.tools, TOOLS)}</div>
-      <div class="card"><h2>Pertanyaan tidak terjawab</h2><p class="muted small">Pertanyaan tanpa jawaban di pedoman. Pola yang berulang = bagian pedoman yang perlu ditambah.</p>
-        ${d.unanswered.length ? `<table><tbody>${d.unanswered.map(u => `<tr><td>${esc(u.question)}</td><td class="muted small">${fmtDT(u.at)}</td></tr>`).join('')}</tbody></table>` : '<p class="muted small">Belum ada.</p>'}</div>
     </div>`;
   $('#chart').append(dayChart(d.per_day));
 }
@@ -237,11 +249,12 @@ async function viewStudents(view) {
     const q = $('#q').value.toLowerCase();
     const rows = students.filter(s => !q || s.name.toLowerCase().includes(q) || s.number.includes(q));
     $('#tbl').innerHTML = `<table><thead><tr><th>NIM</th><th>Nama</th><th>Mata kuliah</th><th>Chat</th><th></th></tr></thead><tbody>${rows.map(s => `
-      <tr class="click" data-id="${s.id}"><td><code>${esc(s.number)}</code></td><td>${esc(s.name)}${s.active ? '' : ' <span class="badge">nonaktif</span>'}</td>
+      <tr class="click" data-id="${s.id}"><td><code>${esc(s.number)}</code></td><td><button type="button" class="rowlink">${esc(s.name)}</button>${s.active ? '' : ' <span class="badge">nonaktif</span>'}</td>
       <td><div class="chips">${s.courses.map(c => `<span class="badge">${esc(c)}</span>`).join('')}</div></td>
       <td>${s.channels.length ? s.channels.map(c => `<span class="badge ok">${esc(CHANNELS[c.channel] || c.channel)}</span>`).join(' ') : '<span class="badge">belum</span>'}</td>
-      <td class="num"><button class="btn small" data-invite="${s.id}">Undangan</button></td></tr>`).join('')}</tbody></table>`;
-    $('#tbl').querySelectorAll('tr[data-id]').forEach(tr => tr.onclick = e => { if (!e.target.dataset.invite) studentDialog(+tr.dataset.id); });
+      <td class="num"><button class="btn small" data-invite="${s.id}">Undangan</button></td></tr>`).join('')}</tbody></table>`
+      + (rows.length ? '' : `<p class="muted" style="padding:16px">${q ? 'Tidak ada mahasiswa yang cocok dengan pencarian.' : 'Belum ada mahasiswa. Tambah lewat + Tambah mahasiswa.'}</p>`);
+    $('#tbl').querySelectorAll('tr[data-id]').forEach(tr => tr.onclick = e => { if (!e.target.dataset.invite) guard(() => studentDialog(+tr.dataset.id)).catch(() => { }); });
     $('#tbl').querySelectorAll('[data-invite]').forEach(b => b.onclick = () => inviteDialog(+b.dataset.invite));
   };
   $('#q').oninput = draw; draw();
@@ -268,8 +281,8 @@ async function studentDialog(id) {
       <label class="check"><input type="checkbox" name="active" ${s.active ? 'checked' : ''}> Aktif</label>
       <div class="wide"><h3>Mata kuliah</h3>${courseChecks(s.courses)}</div></div>
       <h3>Akun chat</h3>${s.channels.length ? s.channels.map(c => `<div class="row small">${esc(CHANNELS[c.channel] || c.channel)} · ${esc(c.display_name || '')} · ${fmtDT(c.linked_at)}<span class="spacer"></span><button type="button" class="btn small danger" data-unlink="${c.id}">Putuskan</button></div>`).join('') : '<p class="muted small">Belum terhubung.</p>'}
-      <h3>Token MCP</h3>${s.tokens.length ? s.tokens.map(t => `<div class="row small"><code>${esc(t.prefix)}…</code> ${t.revoked ? '<span class="badge bad">dicabut</span>' : `· dipakai ${fmtDT(t.last_used_at)}`}<span class="spacer"></span>${t.revoked ? '' : `<button type="button" class="btn small danger" data-revoke="${t.id}">Cabut</button>`}</div>`).join('') : '<p class="muted small">Tidak ada.</p>'}
-      <h3>Tiket</h3>${s.handoffs.length ? s.handoffs.map(h => `<div class="small"><code>${esc(h.reference)}</code> <span class="badge ${h.status}">${STATUS[h.status]}</span> ${esc(h.question.slice(0, 80))}</div>`).join('') : '<p class="muted small">Tidak ada.</p>'}
+      <h3>Token MCP</h3>${s.tokens.length ? s.tokens.map(t => `<div class="row small"><code>${esc(t.prefix)}…</code> ${t.revoked ? '<span class="badge bad">dicabut</span>' : `· dipakai ${fmtDT(t.last_used_at)}`}<span class="spacer"></span>${t.revoked ? '' : `<button type="button" class="btn small danger" data-revoke="${t.id}">Cabut</button>`}</div>`).join('') : '<p class="muted small">Belum ada token. Mahasiswa membuatnya di portal mahasiswa atau dengan /token di bot.</p>'}
+      <h3>Tiket</h3>${s.handoffs.length ? s.handoffs.map(h => `<div class="small"><code>${esc(h.reference)}</code> <span class="badge ${h.status}">${STATUS[h.status]}</span> ${esc(h.question.slice(0, 80))}</div>`).join('') : '<p class="muted small">Belum ada pertanyaan yang diteruskan ke staf.</p>'}
       <p class="error"></p><div class="row"><button type="button" class="btn" id="inv">Buat undangan</button><span class="spacer"></span><button type="button" class="btn" data-close>Tutup</button><button class="btn primary">Simpan</button></div></form>`,
     async v => { await api('PATCH', `/students/${id}`, v); toast('Tersimpan'); go(); });
   d.querySelectorAll('[data-unlink]').forEach(b => b.onclick = async () => { if (!confirm('Putuskan akun chat ini?')) return; await guard(() => api('DELETE', `/students/${id}/channels/${b.dataset.unlink}`), 'Diputus'); d.close(); studentDialog(id); });
@@ -289,7 +302,7 @@ async function viewSchedule(view) {
     $('#tbl').innerHTML = items.length ? `<table><thead><tr><th>Tenggat (WIB)</th><th>Mata kuliah</th><th>Item</th><th>Jenis</th><th></th></tr></thead><tbody>${items.map(i => `
       <tr><td>${fmtDate(i.due_date)}<div class="muted small">${esc(i.due_time)}${i.end_time ? '–' + esc(i.end_time) : ''}</div></td><td>${esc(courseName(i.course_code))}<div class="muted small">${esc(i.course_code)}</div></td>
       <td>${esc(i.title_id)}<div class="muted small"><code>${esc(i.item_id)}</code> · ${esc(i.source)}</div></td><td><span class="badge">${TYPES[i.type]}</span></td>
-      <td class="num">${editable.some(c => c.code === i.course_code) ? `<button class="btn small" data-edit="${esc(i.item_id)}">Ubah</button>` : ''}</td></tr>`).join('')}</tbody></table>` : '<p class="muted" style="padding:16px">Belum ada item.</p>';
+      <td class="num">${editable.some(c => c.code === i.course_code) ? `<button class="btn small" data-edit="${esc(i.item_id)}">Ubah</button>` : ''}</td></tr>`).join('')}</tbody></table>` : `<p class="muted" style="padding:16px">Belum ada tenggat atau ujian${c ? ' untuk mata kuliah ini' : ''}. ${editable.length ? 'Tambah lewat + Tambah tenggat/ujian.' : 'Dosen pengampu bisa menambahkannya.'}</p>`;
     $('#tbl').querySelectorAll('[data-edit]').forEach(b => b.onclick = () => itemDialog(items.find(i => i.item_id === b.dataset.edit), load));
   };
   $('#course').onchange = load;
@@ -319,7 +332,8 @@ async function viewCalendar(view) {
   view.innerHTML = `<div class="row" style="margin-bottom:12px"><p class="muted small" style="margin:0">Sumber untuk "minggu ke berapa" dan "apa yang sedang dibuka".</p><span class="spacer"></span>${admin ? '<button class="btn primary" id="add">+ Tambah</button>' : ''}</div>
     <div class="table-wrap"><table><thead><tr><th>Jenis</th><th>Nama</th><th>Mulai</th><th>Selesai</th><th></th></tr></thead><tbody>${entries.map(e => `
     <tr><td><span class="badge">${KIND[e.kind]}</span></td><td>${esc(e.name_id)}<div class="muted small"><code>${esc(e.key)}</code> ${esc(e.note_id)}</div></td><td>${fmtDate(e.start)}</td><td>${fmtDate(e.end)}</td>
-    <td class="num">${admin ? `<button class="btn small" data-edit="${e.id}">Ubah</button>` : ''}</td></tr>`).join('')}</tbody></table></div>`;
+    <td class="num">${admin ? `<button class="btn small" data-edit="${e.id}">Ubah</button>` : ''}</td></tr>`).join('')}</tbody></table>
+    ${entries.length ? '' : `<p class="muted" style="padding:16px">Belum ada entri kalender, jadi bot belum bisa menjawab "minggu ke berapa". ${admin ? 'Tambah lewat + Tambah.' : 'Admin bisa menambahkannya.'}</p>`}</div>`;
   const open = e => {
     const d = dialog(`<form><h2>${e ? 'Ubah' : 'Tambah'} entri kalender</h2><div class="form-grid">
       <label>Jenis<select name="kind">${Object.entries(KIND).map(([k, v]) => `<option value="${k}" ${e?.kind === k ? 'selected' : ''}>${v}</option>`).join('')}</select></label>
@@ -335,29 +349,91 @@ async function viewCalendar(view) {
 }
 
 // ------------------------------------------------------------ handbook
+const FORMAT_GUIDE = `
+  <p class="small" style="margin:0 0 8px">Bot hanya menjawab aturan dari pedoman yang aktif, dan selalu menyebut judul, versi, dan pasalnya. Setiap aturan ditulis sebagai satu pasal berisi empat baris berurutan:</p>
+  <pre class="secret mono small" style="white-space:pre-wrap;margin:0 0 8px">## 4.2 | Keterlambatan Pengumpulan Tugas | Late Assignment Submission
+tags: telat, terlambat, late, tenggat, deadline, potongan, penalti, nilai, kumpul, tugas
+ID: Tugas yang terlambat sampai 24 jam dipotong 20%, ...
+EN: Work up to 24 hours late loses 20%, ...</pre>
+  <ul class="small" style="margin:0 0 8px;padding-left:20px">
+    <li><b>Baris ##</b>: nomor pasal, judul Indonesia, dan judul Inggris, dipisah garis tegak <code>|</code>.</li>
+    <li><b>tags</b>: 10 sampai 15 kata yang dipakai mahasiswa saat bertanya, termasuk kata santai (telat, absen), singkatan (uts, krs), dan kata Inggris. Bot hanya memakai pasal kalau pertanyaan cocok dengan minimal dua tag.</li>
+    <li><b>ID</b> dan <b>EN</b>: isi aturan, masing-masing satu paragraf. Angka, batas waktu, dan syarat ditulis persis seperti dokumen resmi.</li>
+    <li>Di bagian paling atas ada <b>title_id</b>, <b>version</b>, dan <b>effective</b> (tanggal mulai berlaku). Versi lama tetap tersimpan tetapi tidak dipakai bot.</li>
+  </ul>`;
+
 async function viewHandbook(view) {
   const docs = await api('GET', '/documents'), admin = can('admin');
+  const active = docs.find(d => d.active);
   view.innerHTML = `<div class="stack"><div class="table-wrap"><table><thead><tr><th>Versi</th><th>Judul</th><th>Berlaku</th><th class="num">Pasal</th><th>Status</th><th></th></tr></thead><tbody>${docs.map(d => `
     <tr><td><code>v${esc(d.version)}</code></td><td>${esc(d.title)}<div class="muted small">diunggah ${fmtDT(d.uploaded_at)}</div></td><td>${fmtDate(d.effective)}</td><td class="num">${d.sections}</td>
     <td>${d.active ? '<span class="badge ok">aktif · dipakai bot</span>' : '<span class="badge">tidak dipakai</span>'}</td>
-    <td class="num"><button class="btn small" data-view="${d.id}">Lihat</button>${admin && !d.active ? ` <button class="btn small" data-act="${d.id}">Aktifkan</button>` : ''}</td></tr>`).join('')}</tbody></table></div>
-    ${admin ? `<div class="card"><h2>Unggah versi baru</h2><p class="muted small">Format Markdown seperti pedoman contoh: front matter (title_id, version, effective) lalu per pasal <code>## 4.2 | Judul | Title</code> diikuti baris <code>tags:</code>, <code>ID:</code>, <code>EN:</code>. Versi lama tetap tersimpan tetapi tidak dipakai bot (FR-10).</p>
+    <td class="num"><button class="btn small" data-view="${d.id}">Lihat</button>${admin && !d.active ? ` <button class="btn small" data-act="${d.id}">Aktifkan</button>` : ''}</td></tr>`).join('')}</tbody></table>
+    ${docs.length ? '' : `<p class="muted" style="padding:16px">Belum ada pedoman, jadi bot belum bisa menjawab aturan kampus. ${admin ? 'Buat draf dengan agen atau unggah versi pertama di bawah.' : 'Admin bisa mengunggahnya.'}</p>`}</div>
+    <div class="card"><div class="row"><h2 style="margin:0">Format pedoman</h2><span class="spacer"></span>
+      <a class="btn small" href="/admin/static/template-pedoman.md" download="template-pedoman.md">Unduh template</a></div>
+      <div style="margin-top:12px">${FORMAT_GUIDE}</div></div>
+    ${admin ? `
+    <div class="card"><h2>Buat draf dengan agen</h2>
+      <p class="muted small" style="margin:0 0 12px">Unggah pedoman resmi apa adanya (Word, PDF berisi teks, Markdown, atau teks biasa). Agen memecahnya menjadi pasal, menulis tag, dan menerjemahkan baris yang belum ada. Hasilnya draf yang harus Anda periksa; tidak ada yang aktif sebelum Anda mengunggahnya.</p>
+      <form id="fmt" class="stack"><div class="form-grid">
+        <label class="wide">Judul pedoman (Indonesia)<input name="title_id" required value="${esc(active?.title || '')}"></label>
+        <label>Judul (Inggris)<input name="title_en"></label><label>Institusi<input name="institution"></label>
+        <label>Versi<input name="version" required placeholder="${active ? esc(active.version) + ' → versi baru' : '1.0'}"></label>
+        <label>Berlaku mulai<input name="effective" type="date" required></label>
+        <label class="wide">Dokumen<input type="file" id="srcfile" accept=".docx,.pdf,.md,.txt,application/pdf,application/vnd.openxmlformats-officedocument.wordprocessingml.document,text/markdown,text/plain"></label>
+        <label class="wide">…atau tempel teksnya<textarea id="srctext" style="min-height:90px" placeholder="Tempel isi pedoman di sini bila tidak punya berkasnya."></textarea></label></div>
+        <p class="error" id="fmterr"></p>
+        <div class="row"><button class="btn primary" id="fmtgo">Format dengan agen</button><span class="muted small" id="fmtprog" role="status"></span></div></form></div>
+    <div class="card" id="review"><h2>Tinjau & unggah versi baru</h2>
+      <div id="fmtwarn"></div>
+      <p class="muted small" style="margin:0 0 8px">Tempel atau edit Markdown di sini, atau isi dari berkas yang sudah berformat. Tombol di bawah memeriksa formatnya dulu; bila ada yang salah, pesannya muncul di bawah kotak.</p>
       <div class="row" style="margin:8px 0"><input type="file" id="file" accept=".md,text/markdown,text/plain" style="max-width:320px"><label class="check"><input type="checkbox" id="activate" checked> Langsung aktifkan</label></div>
-      <textarea id="content" style="min-height:160px" placeholder="…atau tempel isi Markdown di sini"></textarea><p class="error" id="uperr"></p>
+      <textarea id="content" style="min-height:220px;font-family:var(--code);font-size:13px" placeholder="Markdown pedoman (lihat Format pedoman di atas)"></textarea><p class="error" id="uperr"></p>
       <button class="btn primary" id="upload">Validasi & unggah</button></div>` : ''}</div>`;
   view.querySelectorAll('[data-view]').forEach(b => b.onclick = async () => {
-    const d = await api('GET', `/documents/${b.dataset.view}`);
+    let d; try { d = await guard(() => api('GET', `/documents/${b.dataset.view}`)); } catch { return; }
     dialog(`<h2>${esc(d.title)} · v${esc(d.version)}</h2><pre class="mono small" style="white-space:pre-wrap;max-height:60vh;overflow:auto">${esc(d.content)}</pre><div class="row"><span class="spacer"></span><button class="btn" data-close>Tutup</button></div>`);
   });
   view.querySelectorAll('[data-act]').forEach(b => b.onclick = async () => { await guard(() => api('POST', `/documents/${b.dataset.act}/activate`), 'Versi diaktifkan · disinkronkan'); syncSoon(); go(); });
-  if (admin) {
-    $('#file').onchange = async e => { const f = e.target.files[0]; if (f) $('#content').value = await f.text(); };
-    $('#upload').onclick = async () => {
-      $('#uperr').textContent = '';
-      try { const r = await api('POST', '/documents', { content: $('#content').value, activate: $('#activate').checked }); toast(`Diunggah: ${r.sections} pasal${r.active ? ' · aktif' : ''}`); syncSoon(); go(); }
-      catch (e) { $('#uperr').textContent = e.message; }
-    };
-  }
+  if (!admin) return;
+  $('#file').onchange = async e => { const f = e.target.files[0]; if (f) $('#content').value = await f.text(); };
+  $('#upload').onclick = async () => {
+    $('#uperr').textContent = '';
+    try { const r = await api('POST', '/documents', { content: $('#content').value, activate: $('#activate').checked }); toast(`Diunggah: ${r.sections} pasal${r.active ? ' · aktif' : ''}`); syncSoon(); go(); }
+    catch (e) { $('#uperr').textContent = e.message; }
+  };
+  $('#fmt').onsubmit = async e => {
+    e.preventDefault();
+    const err = $('#fmterr'), prog = $('#fmtprog'), btn = $('#fmtgo'), f = $('#srcfile').files[0], text = $('#srctext').value.trim();
+    err.textContent = '';
+    if (!f && !text) { err.textContent = 'Pilih berkas atau tempel teks pedoman.'; return; }
+    if (f && f.size > 8 * 1024 * 1024) { err.textContent = 'Berkas lebih dari 8 MB.'; return; }
+    const body = Object.fromEntries(new FormData(e.target));
+    if (f) {
+      body.filename = f.name;
+      body.content_b64 = await new Promise((ok, bad) => { const r = new FileReader(); r.onload = () => ok(String(r.result).split(',')[1]); r.onerror = bad; r.readAsDataURL(f); });
+    } else body.text = text;
+    btn.disabled = true; prog.textContent = 'Membaca dokumen…';
+    try {
+      const { job } = await api('POST', '/documents/format', body);
+      let j;
+      for (;;) {
+        await new Promise(r => setTimeout(r, 2000));
+        j = await api('GET', `/documents/format/${job}`);
+        if (j.status !== 'running') break;
+        prog.textContent = j.total ? `Agen memformat bagian ${Math.min(j.done + 1, j.total)} dari ${j.total}…` : 'Agen mulai bekerja…';
+      }
+      if (j.status === 'error') throw new Error(j.error);
+      const res = j.result;
+      $('#content').value = res.markdown;
+      $('#activate').checked = false;  // a draft is reviewed before it goes live
+      $('#fmtwarn').innerHTML = `<div class="warn" style="margin-bottom:12px"><b>${res.articles} pasal dibuat. Periksa sebelum mengunggah:</b><ul style="margin:8px 0 0;padding-left:20px">${res.warnings.map(w => `<li>${esc(w)}</li>`).join('')}</ul>${res.valid ? '' : `<p style="margin:8px 0 0">Format belum valid: ${esc(res.error)}</p>`}</div>`;
+      prog.textContent = 'Selesai. Draf ada di kotak tinjauan di bawah.';
+      $('#review').scrollIntoView({ behavior: 'smooth', block: 'start' });
+    } catch (x) { err.textContent = x.message; prog.textContent = ''; }
+    finally { btn.disabled = false; }
+  };
 }
 
 // ------------------------------------------------------------ users
@@ -367,7 +443,8 @@ async function viewUsers(view) {
   view.innerHTML = `<div class="row" style="margin-bottom:12px"><span class="spacer"></span><button class="btn primary" id="add">+ Tambah pengguna</button></div>
     <div class="table-wrap"><table><thead><tr><th>Nama</th><th>Email</th><th>Peran</th><th>Mata kuliah</th><th></th></tr></thead><tbody>${users.map(u => `
     <tr><td>${esc(u.name)}${u.active ? '' : ' <span class="badge">nonaktif</span>'}</td><td>${esc(u.email)}</td><td><span class="badge">${ROLE[u.role]}</span></td>
-    <td><div class="chips">${u.courses.map(c => `<span class="badge">${esc(c)}</span>`).join('')}</div></td><td class="num"><button class="btn small" data-edit="${u.id}">Ubah</button></td></tr>`).join('')}</tbody></table></div>`;
+    <td><div class="chips">${u.courses.map(c => `<span class="badge">${esc(c)}</span>`).join('')}</div></td><td class="num"><button class="btn small" data-edit="${u.id}">Ubah</button></td></tr>`).join('')}</tbody></table>
+    ${users.length ? '' : '<p class="muted" style="padding:16px">Belum ada pengguna lain. Tambah staf atau dosen lewat + Tambah pengguna.</p>'}</div>`;
   const showPw = (email, pw) => dialog(`<h2>Kata sandi sementara</h2><p class="muted small">Untuk ${esc(email)}. Hanya ditampilkan sekali; minta pengguna menggantinya di "Akun saya".</p><div class="secret"><code>${esc(pw)}</code></div><div class="row" style="margin-top:12px"><span class="spacer"></span><button class="btn primary" data-close>Selesai</button></div>`);
   const open = u => {
     const d = dialog(`<form><h2>${u ? 'Ubah pengguna' : 'Tambah pengguna'}</h2><div class="form-grid">
@@ -404,19 +481,26 @@ async function viewTestChat(view) {
       <select id="lang" style="max-width:150px"><option value="id">Bahasa Indonesia</option><option value="en">English</option></select>
       <span class="spacer"></span><button class="btn small" id="reset">Reset</button></div>
       <p class="muted small" style="margin:0 0 8px">Sama dengan bot Telegram (memakai flow Langflow yang sama). Uji chat tidak dihitung di dasbor; tiket dan pengingat dari sini bertanda "Panel".</p>
-      <div class="chatlog" id="log"></div>
+      <div class="chatlog" id="log" aria-live="polite"><p class="muted small" id="hint">Tulis pertanyaan seperti mahasiswa, misalnya "Apa saja yang deadline minggu ini?" atau "Nilai saya belum keluar 3 minggu".</p></div>
       <form id="send" class="row"><input id="msg" placeholder="Tulis pertanyaan seperti mahasiswa…" autocomplete="off"><button class="btn primary">Kirim</button></form></div>`;
   const log = $('#log');
   const who = () => ({ student_id: $('#who').value ? +$('#who').value : null, language: $('#lang').value });
   const add = (cls, html) => { const m = el(`<div class="msg ${cls}">${html}</div>`); log.append(m); log.scrollTop = log.scrollHeight; return m; };
   async function send(payload, label) {
+    $('#hint')?.remove();
     add('user', `<div class="bubble">${esc(label)}</div>`);
-    const r = await guard(() => api('POST', '/testchat', { ...who(), ...payload }));
+    const btn = $('#send button'), wait = add('bot', '<div class="bubble muted">Sigap sedang mengetik…</div>');
+    btn.disabled = true;
+    let r;
+    try { r = await guard(() => api('POST', '/testchat', { ...who(), ...payload })); }
+    catch (e) { wait.innerHTML = `<div class="bubble">Tidak ada balasan: ${esc(e.message)}. Coba kirim lagi.</div>`; return; }
+    finally { btn.disabled = false; }
+    wait.remove();
     const m = add('bot', '');
     for (const b of r.blocks) {
       if (b.type === 'text') m.append(el(`<div class="bubble">${md(b.text)}</div>`));
-      else if (b.type === 'deadlines') m.append(el(`<div class="bubble"><p><b>📅 ${esc(b.range)}</b></p>${b.items.length ? `<ul>${b.items.map(i => `<li>${i.due_today ? '⚠️ ' : ''}<b>${esc(i.item)}</b> — ${esc(i.course)} · ${esc(i.due_text)}</li>`).join('')}</ul>` : '<p>Tidak ada.</p>'}<p class="muted small">Sumber: ${esc(b.source)}</p></div>`));
-      else if (b.type === 'answer') m.append(el(`<div class="bubble"><blockquote>${esc(b.text)}</blockquote><p class="muted small">📖 ${esc(b.citation)}</p></div>`));
+      else if (b.type === 'deadlines') m.append(el(`<div class="bubble"><p><b>${esc(b.range)}</b></p>${b.items.length ? `<ul>${b.items.map(i => `<li><b>${esc(i.item)}</b> · ${esc(i.course)} · ${esc(i.due_text)}${i.due_today ? ' <b>(hari ini)</b>' : ''}</li>`).join('')}</ul>` : '<p>Tidak ada tenggat dalam rentang ini.</p>'}<p class="muted small">Sumber: ${esc(b.source)}</p></div>`));
+      else if (b.type === 'answer') m.append(el(`<div class="bubble"><blockquote>${esc(b.text)}</blockquote><p class="muted small">Sumber: ${esc(b.citation)}</p></div>`));
       else if (b.type === 'confirm') {
         const row = el(`<div class="row"><button class="btn primary small">${esc(b.yes)}</button><button class="btn small">${esc(b.no)}</button></div>`);
         const [y, n] = row.querySelectorAll('button'), pid = r.pending_id;
@@ -425,11 +509,11 @@ async function viewTestChat(view) {
         m.append(row);
       } else if (b.type === 'links') m.append(el(`<div class="bubble small">${b.links.map(l => `<a href="${esc(l.href)}" target="_blank" rel="noopener">${esc(l.label)}</a>`).join('<br>')}</div>`));
     }
-    if (r.tool_calls?.length) m.append(el(`<div class="trace">🔧 ${r.tool_calls.map(c => esc(c.tool) + (c.status ? ' (' + esc(c.status) + ')' : '')).join(' → ')}</div>`));
+    if (r.tool_calls?.length) m.append(el(`<div class="trace">Alat: ${r.tool_calls.map(c => esc(c.tool) + (c.status ? ' (' + esc(c.status) + ')' : '')).join(' → ')}</div>`));
     log.scrollTop = log.scrollHeight;
   }
   $('#send').onsubmit = e => { e.preventDefault(); const t = $('#msg').value.trim(); if (!t) return; $('#msg').value = ''; send({ message: t }, t); };
-  const reset = async () => { await api('POST', '/testchat/reset', who()); log.innerHTML = ''; };
+  const reset = async () => { try { await guard(() => api('POST', '/testchat/reset', who())); log.innerHTML = ''; } catch { } };
   $('#reset').onclick = reset; $('#who').onchange = reset;
 }
 

@@ -11,6 +11,8 @@ dependencies = [
     "sqlmodel>=0.0.47",
     "alembic>=1.20.0",
     "argon2-cffi>=25.1.0",
+    "pypdf>=6.19.0",
+    "python-docx>=1.2.0",
 ]
 
 [project.scripts]
@@ -19,6 +21,7 @@ sigap-server = "sigap.web:main"
 sigap-web = "sigap.web:main"
 sigap-eval = "sigap.evaluate:main"
 sigap-admin = "sigap.cli:main"
+sigap-retention = "sigap.retention:main"
 
 [build-system]
 requires = ["hatchling"]

@@ -32,7 +32,7 @@ COOKIE = "sigap_student"
 CODE_TTL = timedelta(minutes=10)
 SESSION_TTL = timedelta(days=7)
 MAX_CODE_ATTEMPTS = 5
-CONSENT_VERSION = "2026-10-v1"
+CONSENT_VERSION = "2026-10-v2"  # raise whenever the privacy notice text changes
 _starts: dict[str, deque] = defaultdict(deque)
 
 
@@ -158,7 +158,25 @@ def me(st: Student = Depends(current_student), db: Session = Depends(get_session
         "tickets": tickets,
         "mcp_url": os.environ.get("SIGAP_PUBLIC_URL", "http://localhost:8000").rstrip("/") + "/mcp",
         "bot_username": os.environ.get("TELEGRAM_BOT_USERNAME"),
+        "privacy": privacy_facts(),
     }
+
+
+_ai_cache: dict = {}
+
+
+def privacy_facts() -> dict:
+    """What the privacy notice states, from the running system: the AI model the agent flow really uses
+    (read from Langflow, cached 5 minutes), who provides it (SIGAP_AI_PROVIDER) and the retention limits."""
+    from .chat import use_llm_agent
+    from .langflow_client import tool_backend
+    from .retention import limits
+    ai = None
+    if use_llm_agent():
+        if time.time() - _ai_cache.get("at", 0) > 300:
+            _ai_cache.update(at=time.time(), model=tool_backend().agent_model().split(": ", 1)[-1])
+        ai = {"model": _ai_cache["model"], "provider": os.environ.get("SIGAP_AI_PROVIDER") or None}
+    return {"ai": ai, "retention": limits(), "contact": os.environ.get("SIGAP_PRIVACY_CONTACT") or None}
 
 
 class ConsentIn(BaseModel):

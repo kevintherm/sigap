@@ -324,6 +324,16 @@ def answer_campus_policy(question: str, language: str | None = None, support_tex
 
 # ---------------------------------------------------------------- tool 4
 
+# Inside the bot's agent the student confirms with a button the backend shows, so the agent must not call the
+# action tool again (models that did so looped until the step limit). Students' own agents (MCP) confirm by calling again.
+_BUTTON_NOTE = {
+    "id": "BELUM dibuat atau dikirim. Sistem menampilkan tombol konfirmasi di bawah balasanmu. "
+          "Jangan panggil alat ini lagi dalam balasan ini; tulis balasan akhir untuk mahasiswa sekarang.",
+    "en": "NOT created or sent yet. The system shows a confirm button below your reply. "
+          "Do not call this tool again in this reply; write your final reply to the student now.",
+}
+
+
 def plan_reminders(item: data.ScheduleItem, n: datetime) -> dict:
     """Default plan: a reminder 3 days before and two 90-minute evening study blocks.
     Every time is derived from the schedule row, never from the model."""
@@ -370,9 +380,9 @@ def parse_remind_at(text: str, n: datetime, due: datetime) -> tuple[datetime | N
     'unclear', 'past' or 'after_due'. Done in code so the model never computes a time."""
     t = " " + (text or "").lower().replace("’", "'") + " "
     at = None
-    try:  # an exact ISO time (what the backend stores between the preview and the yes)
+    try:  # an exact ISO time (what the backend stores between the preview and the yes): only validate it
         iso = datetime.fromisoformat(text.strip())
-        at = iso if iso.tzinfo else iso.replace(tzinfo=WIB)
+        return _check_remind_at(iso if iso.tzinfo else iso.replace(tzinfo=WIB), n, due)
     except ValueError:
         pass
     # explicit clock time: 20:00 / 20.00 / jam 8 / pukul 8 / at 8 / 8pm / 8 am
@@ -436,11 +446,28 @@ def parse_remind_at(text: str, n: datetime, due: datetime) -> tuple[datetime | N
                 at += timedelta(hours=12)  # "jam 8" said in the evening means 20:00
             else:
                 at += timedelta(days=1)  # "jam 7 pagi" said tonight means tomorrow morning
+    return _check_remind_at(at, n, due)
+
+
+def _check_remind_at(at: datetime, n: datetime, due: datetime) -> tuple[datetime | None, str | None]:
     if at <= n:
         return None, "past"
     if at >= due:
         return None, "after_due"
     return at, None
+
+
+_TIME_WORDS = re.compile(
+    r"\b\d+(?:[.,]\d+)?\s*" + _UNIT + r"\b"                      # 2 jam, 30 menit, 3 days
+    r"|\b(?:jam|pukul|pkl\.?|at)\s*\d{1,2}(?:[:.]\d{2})?\b|@\s*\d{1,2}"  # jam 8, at 9
+    r"|\b\d{1,2}[:.]\d{2}\b|\b\d{1,2}\s*(?:am|pm)\b"            # 20.00, 9pm
+    r"|\bh\s*-\s*\d+\b|\b\d{4}-\d{2}-\d{2}\b"                 # H-1, 2026-10-04
+    r"|\b\d{1,2}\s+(?:" + "|".join(sorted(_MONTH_WORDS, key=len, reverse=True)) + r")\b", re.I)
+
+
+def strip_time_words(text: str) -> str:
+    """The message without its time expressions, so "2 jam sebelum deadline" does not match "Kuis 2"."""
+    return _TIME_WORDS.sub(" ", text or "")
 
 
 def _remind_at_error(reason: str, item: data.ScheduleItem, n: datetime, lang: str) -> str:
@@ -483,7 +510,7 @@ def _ics(events: list[dict]) -> str:
 
 
 def create_study_reminder(item_id: str, student_confirmed: bool = False, language: str | None = None,
-                          remind_at: str | None = None) -> dict:
+                          remind_at: str | None = None, confirm_with: str = "tool") -> dict:
     """Creates calendar events for a deadline or exam: by default a reminder + study blocks, or, with remind_at
     (the student's own words, e.g. "jam 8 malam"), one reminder at that time.
     Writes nothing unless student_confirmed is True: without it, returns the proposed plan."""
@@ -527,7 +554,8 @@ def create_study_reminder(item_id: str, student_confirmed: bool = False, languag
         return base | {"status": "NOTHING_TO_SCHEDULE",
                        "text": "Tenggatnya terlalu dekat untuk dijadwalkan pengingat." if lang == "id" else "The deadline is too close to schedule a reminder."}
     if not student_confirmed:
-        q = ("Rencana ini BELUM dibuat. Tanyakan dulu ke mahasiswa; panggil lagi dengan student_confirmed=true hanya setelah ia menjawab ya."
+        q = (_BUTTON_NOTE[lang] if confirm_with == "button" else
+             "Rencana ini BELUM dibuat. Tanyakan dulu ke mahasiswa; panggil lagi dengan student_confirmed=true hanya setelah ia menjawab ya."
              if lang == "id" else
              "This plan has NOT been created. Ask the student first; call again with student_confirmed=true only after they say yes.")
         return base | {"status": "NEEDS_CONFIRMATION", "text": "\n".join([title, *plan_lines, "", q])}
@@ -595,7 +623,8 @@ def _next_reference(n: datetime) -> str:
 
 def escalate_to_student_services(question: str, category: str | None = None, course: str | None = None,
                                  checked_sources: list[str] | None = None, language: str | None = None,
-                                 student_confirmed: bool = False, reference: str | None = None) -> dict:
+                                 student_confirmed: bool = False, reference: str | None = None,
+                                 confirm_with: str = "tool") -> dict:
     """Sends a question Sigap could not answer to student services with a case summary.
     Sends nothing unless student_confirmed is True: without it, returns a preview of what would be sent."""
     lang = _lang(language, question)
@@ -615,6 +644,8 @@ def escalate_to_student_services(question: str, category: str | None = None, cou
                    f"Will send to {office} ({inbox}): the question, category '{cat}'"
                    + (f", course {c.name(lang)}" if c else "")
                    + ", and the sources already checked. No student ID or other personal data. NOT sent yet — wait for the student's yes.")
+        if confirm_with == "button":
+            preview += "\n" + _BUTTON_NOTE[lang]
         return base | {"status": "NEEDS_CONFIRMATION", "text": preview}
 
     ref = reference or _next_reference(n)

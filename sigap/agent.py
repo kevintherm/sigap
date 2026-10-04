@@ -7,6 +7,7 @@ an LLM quota.
 """
 import json
 import re
+import time
 import uuid
 from collections.abc import Callable
 from dataclasses import dataclass, field
@@ -61,6 +62,8 @@ class Session:
     agent_session: str = field(default_factory=lambda: "s-" + uuid.uuid4().hex)  # Langflow memory key; not an identity
     greeted: bool = False
     turns: list = field(default_factory=list)
+    recent_items: list = field(default_factory=list)  # item_ids of the last deadline list or offer, for "that one"
+    last_active: float = field(default_factory=time.time)  # wall clock of the last message, for the idle reset
 
 
 def _t(lang: str, id_text: str, en_text: str) -> str:
@@ -216,20 +219,38 @@ def handle_with_agent(session: Session, message: str, run_agent: Callable) -> di
         return resolve_pending(session, bool(YES.match(msg)), session.pending["id"])
     if not msg or GREETING.match(msg):
         return handle(session, msg)
-    session.pending = None
+    previous_offer, session.pending = session.pending, None
     session.turns.append(msg)
+    retried = False
     try:
-        out = run_agent(msg, session.agent_session, session.courses, session.linked)
+        try:
+            out = run_agent(msg, session.agent_session, session.courses, session.linked)
+        except LangflowError as e:
+            # A model that keeps calling tools hits the agent's step limit now and then; a second run usually
+            # answers. Timeouts and connection errors are not retried: that would only double the wait.
+            if "Recursion limit" not in str(e):
+                raise
+            retried = True
+            out = run_agent(msg, session.agent_session, session.courses, session.linked)
     except LangflowError:
         res = handle(session, msg)
         res["tool_calls"].insert(0, {"tool": "agent", "args": {}, "status": "FALLBACK"})
         return res
     r = Reply()
+    if retried:
+        r.tool_calls.append({"tool": "agent", "args": {}, "status": "RETRIED"})
     answer = "\n".join(line for line in out["text"].splitlines() if not line.strip().startswith("[SIGAP CONTEXT")).strip()
+    answer = re.sub(r"\s*\u2014\s*", ", ", answer)  # house style has no em dash; the prompt asks too, models still slip
     r.text(answer or _unavailable(session.lang))
     for st in out["steps"]:
         res = st["result"] or {}
         r.tool_calls.append({"tool": st["tool"], "args": {"input": st["input"]}, "status": res.get("status")})
+    for st in out["steps"]:
+        res = st["result"] or {}
+        if st["tool"] == "get_my_deadlines" and res.get("items") is not None:
+            session.recent_items = [i["item_id"] for i in res["items"]]
+        elif st["tool"] == "create_study_reminder" and (res.get("item") or {}).get("item_id"):
+            session.recent_items = [res["item"]["item_id"]]
     proposal = next((st for st in reversed(out["steps"]) if (st["result"] or {}).get("status") == "NEEDS_CONFIRMATION"), None)
     policy = [(st["result"] or {}).get("status") for st in out["steps"] if st["tool"] == "answer_campus_policy"]
     if not proposal and "NOT_FOUND" in policy and "FOUND" not in policy:
@@ -272,6 +293,9 @@ def handle_with_agent(session: Session, message: str, run_agent: Callable) -> di
                       f"📨 Forward your question to **{office}**? Only the question and its category are sent, no student ID."))
             r.blocks.append({"type": "confirm", "yes": _t(lang, "Ya, teruskan ke staf", "Yes, send to staff"),
                              "no": _t(lang, "Tidak", "No")})
+    if not proposal and previous_offer and not out["steps"]:
+        # A reply without any tool call ("the plan is in the buttons above") keeps the earlier offer's buttons working.
+        session.pending = previous_offer
     return r.as_dict(session)
 
 
@@ -351,6 +375,7 @@ def _handle_deadlines(r: Reply, session: Session, msg: str):
     args = {"request": msg, "language": lang, "courses": session.courses or []}
     res = r.call("get_my_deadlines", args, tool_backend().get_my_deadlines(**args))
     r.blocks.append({"type": "deadlines", "range": res["range"]["label"], "items": res["items"], "source": res["source"]})
+    session.recent_items = [i["item_id"] for i in res["items"]]
     if not res["items"]:
         r.text(res["text"])
         return
@@ -368,41 +393,51 @@ def _handle_deadlines(r: Reply, session: Session, msg: str):
 
 def _handle_remind(r: Reply, session: Session, msg: str):
     """"Ingatkan aku jam 8 malam soal Tugas 3 Basis Data": find the item, then offer a reminder at that time
-    (the tool parses the time from the message) or the default plan when no time is given."""
+    (the tool parses the time from the message) or the default plan when no time is given. Without a course or
+    item in the message, "that one" means the item from the previous reply; if that is unclear, ask."""
     lang = session.lang
     if not session.linked:
         return _needs_link(r, lang)
-    course = tools.find_course(msg)
+    words = tools.strip_time_words(msg)  # "2 jam sebelum deadline" names a time, not "Kuis 2"
+    course = tools.find_course(words)
     args = {"request": "next 45 days", "course": course.code if course else None, "language": lang,
             "courses": session.courses or []}
     res = r.call("get_my_deadlines", args, tool_backend().get_my_deadlines(**args))
-    item = _pick_item(msg, res["items"])
+    item = _pick_item(words, res["items"], course_named=course is not None)
+    if not item:
+        recent = [i for i in res["items"] if i["item_id"] in session.recent_items]
+        item = recent[0] if len(recent) == 1 else None
     if not item:
         r.text(_t(lang, "Pengingat untuk tugas atau ujian yang mana? Sebutkan mata kuliahnya, misalnya "
                         "\"ingatkan Tugas 4 Struktur Data jam 8 malam\".",
                   "Which deadline or exam is the reminder for? Name the course, e.g. "
                   "\"remind me about Data Structures assignment 4 at 8pm\"."))
         return
+    session.recent_items = [item["item_id"]]
     has_time = tools.parse_remind_at(msg, tools.now(), datetime.max.replace(tzinfo=tools.WIB))[1] != "unclear"
-    _offer_reminder(r, session, item["item_id"], f"**{item['course']}: {item['item']}** — {item['due_text']}.",
+    _offer_reminder(r, session, item["item_id"], f"**{item['course']}: {item['item']}** · {item['due_text']}.",
                     remind_at=msg if has_time else None)
 
 
-def _pick_item(msg: str, items: list[dict]) -> dict | None:
-    """The schedule item the message names: its number ("Tugas 3"), its kind (UTS, quiz) and title words."""
+def _pick_item(words: str, items: list[dict], course_named: bool = False) -> dict | None:
+    """The schedule item the message names: its number ("Tugas 3"), its kind (UTS, quiz) and title words.
+    None when nothing in the message points at an item, unless a course was named (then its soonest item)."""
     if not items:
         return None
-    words = set(re.findall(r"[a-z]+|\d+", msg.lower()))
+    words = set(re.findall(r"[a-z]+|\d+", words.lower()))
     kinds = {"exam": {"uts", "uas", "ujian", "exam", "midterm", "final"}, "quiz": {"kuis", "quiz"},
              "project": {"proyek", "project", "laporan", "report"}}
 
+    generic = set().union(*kinds.values(), {"tugas", "assignment", "dan", "and", "the", "of"})
+
+    def specific(i):  # the item's own number and title words; "tugas" or "kuis" alone names no item
+        title = set(re.findall(r"[a-z]+|\d+", i["item"].lower())) - generic
+        return 3 * len({w for w in words & title if w.isdigit()}) + len({w for w in words & title if not w.isdigit()})
+
     def score(i):
-        title = set(re.findall(r"[a-z]+|\d+", i["item"].lower()))
-        sc = 3 * len({w for w in words & title if w.isdigit()}) + len({w for w in words & title if not w.isdigit()})
-        sc += 2 * bool(words & kinds.get(i["type"], {"tugas", "assignment", "essay", "esai"}))
-        return sc
+        return specific(i) + 2 * bool(words & kinds.get(i["type"], {"tugas", "assignment", "essay", "esai"}))
     best = max(items, key=score)  # ties keep the soonest (items are sorted by due date)
-    return best if score(best) > 0 or len({i["course"] for i in items}) == 1 else None
+    return best if specific(best) > 0 or course_named else None
 
 
 def _handle_policy(r: Reply, session: Session, msg: str):

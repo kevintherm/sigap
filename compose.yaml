@@ -14,6 +14,11 @@ services:
       LANGFLOW_SSRF_PROTECTION_ENABLED: ${LANGFLOW_SSRF_PROTECTION_ENABLED:-true}
       LANGFLOW_SSRF_ALLOWED_HOSTS: ${LANGFLOW_SSRF_ALLOWED_HOSTS}
       DO_NOT_TRACK: ${DO_NOT_TRACK:-true}
+      # Run logs copy every message's text and cannot be deleted through the API, so Sigap turns them off (UU PDP).
+      # Chat messages themselves are kept for the agent's memory and deleted by the backend after 24 hours.
+      LANGFLOW_TRANSACTIONS_STORAGE_ENABLED: ${LANGFLOW_TRANSACTIONS_STORAGE_ENABLED:-false}
+      LANGFLOW_VERTEX_BUILDS_STORAGE_ENABLED: ${LANGFLOW_VERTEX_BUILDS_STORAGE_ENABLED:-false}
+      LANGFLOW_DEACTIVATE_TRACING: ${LANGFLOW_DEACTIVATE_TRACING:-true}
     volumes:
       - langflow-data:/app/langflow:rw
     healthcheck:

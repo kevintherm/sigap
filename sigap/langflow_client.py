@@ -7,6 +7,7 @@ tools return, so callers don't care where a tool ran.
 import json
 import os
 import time
+import uuid
 
 import httpx
 
@@ -76,6 +77,27 @@ class LangflowTools:
         for piece in narration:  # the model's "let me check…" notes between tool calls are not part of the reply
             answer = answer.replace(piece, "", 1)
         return {"text": answer.strip(), "steps": steps, "langflow_ms": round(ms, 1)}
+
+    def run_text(self, flow: str, text: str, timeout: float = 180) -> str:
+        """Sends one text to a Langflow chat flow and returns its reply text (fresh session, nothing remembered)."""
+        session = "fmt-" + uuid.uuid4().hex
+        body = {"input_value": text, "input_type": "chat", "output_type": "chat", "session_id": session}
+        try:
+            r = self.client.post(f"{self.url}/api/v1/run/{flow.replace('_', '-')}", params={"stream": "false"},
+                                 json=body, timeout=timeout)
+        except httpx.HTTPError as e:
+            raise LangflowError(f"{flow}: {e}") from e
+        finally:  # the Agent component saves its reply even with storage off; this run's copy is not needed
+            try:
+                self.client.delete(f"{self.url}/api/v1/monitor/messages/session/{session}")
+            except httpx.HTTPError:
+                pass
+        if r.status_code != 200:
+            raise LangflowError(f"{flow}: HTTP {r.status_code} {r.text[:300]}")
+        try:
+            return r.json()["outputs"][0]["outputs"][0]["results"]["message"]["text"]
+        except (KeyError, IndexError, TypeError) as e:
+            raise LangflowError(f"{flow}: unexpected response shape") from e
 
     def agent_model(self) -> str:
         """'provider: model' of the sigap_agent flow, read from Langflow (what actually runs)."""

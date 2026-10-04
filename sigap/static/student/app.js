@@ -47,17 +47,30 @@ function showLogin(step = 1, identifier = '') {
 }
 
 // ------------------------------------------------------------ consent
+function privacyText(p) {
+  const r = p.retention, hours = h => h % 24 === 0 ? `${h / 24} hari` : `${h} jam`;
+  const ai = p.ai
+    ? `Pesan diproses oleh sistem Sigap dan oleh model AI <b>${esc(p.ai.model)}</b>${p.ai.provider ? ` (${esc(p.ai.provider)})` : ''} untuk memahami pertanyaanmu. Penyedia AI memproses pesan sesuai kebijakan privasinya sendiri. <b>Nama, NIM, dan akun chat-mu tidak dikirim ke penyedia AI</b>, tetapi isi pesan dikirim, jadi jangan menulis data sensitif (kesehatan, nomor identitas, kata sandi).`
+    : 'Pesan diproses oleh sistem Sigap sendiri, tanpa penyedia AI luar. Jangan menulis data sensitif (kesehatan, nomor identitas, kata sandi).';
+  const contact = p.contact ? esc(p.contact) : 'layanan.akademik@und.ac.id, alamat contoh untuk demo';
+  return `<p><b>Sigap</b> adalah asisten AI layanan akademik. Untuk bekerja, Sigap memproses:</p>
+    <ul><li>Data akademik dari kampus: nama, NIM, email kampus, dan mata kuliah yang kamu ambil.</li>
+    <li>Pesan yang kamu kirim ke bot. ${ai}</li>
+    <li>Pertanyaan yang kamu teruskan ke staf, beserta balasannya.</li></ul>
+    <p><b>Yang disimpan dan berapa lama</b></p>
+    <ul><li>Isi percakapan dengan bot: paling lama ${hours(r.chat_hours)} sebagai ingatan percakapan, lalu dihapus otomatis.</li>
+    <li>Pertanyaan ke staf dan balasannya: selama tiket masih berjalan, lalu dihapus ${r.handoff_days} hari setelah tiket ditutup. Salinan email yang diterima staf mengikuti kebijakan email kampus.</li>
+    <li>Pengingat: dihapus ${r.reminder_days} hari setelah dikirim.</li>
+    <li>Statistik pemakaian tanpa isi pesan: ${r.usage_days} hari. Pertanyaan yang tidak bisa dijawab disimpan tanpa identitasmu selama ${r.unanswered_days} hari untuk memperbaiki pedoman.</li>
+    <li>Data akademik: selama akunmu aktif di Sigap.</li>
+    <li>Riwayat chat di aplikasi Telegram disimpan oleh Telegram sendiri, di luar kendali Sigap. Kamu bisa menghapusnya dari aplikasi.</li></ul>
+    <p>Sigap tidak menjual data, tidak menampilkan iklan, dan tidak membuat keputusan akademik: keputusan tetap di tangan staf. Jawaban bisa salah; selalu cek sumber yang disebutkan.</p>
+    <p>Sesuai UU PDP No. 27/2022 kamu berhak mengakses, memperbaiki, dan meminta penghapusan data pribadimu lewat portal ini atau Layanan Akademik (${contact}).</p>
+    <p class="muted">Prototipe hackathon: semua data mahasiswa di demo ini sintetis.</p>`;
+}
 function showConsent(me) {
   view.innerHTML = `<div class="card stack"><div><h2>Pemberitahuan privasi</h2><p class="muted small" style="margin:0">Versi ${esc(me.consent.version)} · baca sebelum memakai Sigap.</p></div>
-    <div class="privacy">
-      <p><b>Sigap</b> adalah asisten AI layanan akademik. Untuk bekerja, Sigap memproses:</p>
-      <ul><li>Data akademik dari kampus: nama, NIM, email kampus, dan mata kuliah yang kamu ambil.</li>
-      <li>Pesan yang kamu kirim ke bot. Pesan diproses oleh sistem Sigap dan oleh penyedia AI (Google Gemini) untuk memahami pertanyaanmu. <b>Nama, NIM, dan akun chat-mu tidak dikirim ke penyedia AI</b>, tetapi isi pesan dikirim — jangan menulis data sensitif (kesehatan, nomor identitas, kata sandi).</li>
-      <li>Pertanyaan yang kamu teruskan ke staf, beserta balasannya.</li>
-      <li>Statistik pemakaian tanpa isi pesan (kecuali pertanyaan yang tidak terjawab, disimpan tanpa identitasmu untuk memperbaiki pedoman).</li></ul>
-      <p>Sigap tidak menjual data, tidak menampilkan iklan, dan tidak membuat keputusan akademik — keputusan tetap di tangan staf. Jawaban bisa salah; selalu cek sumber yang disebutkan.</p>
-      <p>Sesuai UU PDP No. 27/2022 kamu berhak mengakses, memperbaiki, dan meminta penghapusan data pribadimu lewat portal ini atau Layanan Akademik (layanan.akademik@und.ac.id).</p>
-      <p class="muted">Prototipe hackathon: semua data mahasiswa di demo ini sintetis.</p></div>
+    <div class="privacy">${privacyText(me.privacy)}</div>
     <label class="check"><input type="checkbox" id="agree"> Saya sudah membaca dan setuju.</label>
     <p class="error" id="ce"></p><button class="btn primary big" id="ok" disabled>Setuju dan lanjutkan</button></div>`;
   $('#agree').onchange = e => $('#ok').disabled = !e.target.checked;
@@ -106,6 +119,7 @@ function showPortal(me, warning) {
       <div id="newtok"></div><button class="btn" id="mk" style="margin-top:8px">+ Buat token</button></div>
     <div class="card"><h2>Privasi</h2>
       <p class="small">Kamu menyetujui pemberitahuan privasi pada ${fmt(me.consent.at)} (versi ${esc(me.consent.version)}).</p>
+      <details class="small" style="margin-bottom:12px"><summary>Baca lagi pemberitahuan privasi</summary><div class="privacy" style="margin-top:8px">${privacyText(me.privacy)}</div></details>
       <button class="btn danger" id="del">Minta penghapusan data pribadi</button></div>`;
   view.querySelectorAll('[data-unlink]').forEach(b => b.onclick = async () => { if (!confirm('Putuskan akun chat ini?')) return; await api('DELETE', `/channels/${b.dataset.unlink}`); toast('Diputus'); boot(); });
   view.querySelectorAll('[data-revoke]').forEach(b => b.onclick = async () => { if (!confirm('Cabut token ini?')) return; await api('DELETE', `/tokens/${b.dataset.revoke}`); toast('Token dicabut'); boot(); });
