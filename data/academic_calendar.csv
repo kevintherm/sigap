@@ -1,0 +1,19 @@
+kind,key,name_id,name_en,start,end,note_id,note_en
+term,ganjil-2026,Semester Ganjil 2026/2027,Odd Semester 2026/2027,2026-08-31,2027-01-08,Minggu ke-1 dimulai Senin 31 Agustus 2026,Week 1 starts Monday 31 August 2026
+period,kuliah-1,Perkuliahan paruh pertama,Lectures (first half),2026-08-31,2026-10-17,,
+period,uts,Pekan Ujian Tengah Semester (UTS),Midterm exam week,2026-10-19,2026-10-24,,
+period,kuliah-2,Perkuliahan paruh kedua,Lectures (second half),2026-10-26,2026-12-12,,
+period,uas,Pekan Ujian Akhir Semester (UAS),Final exam week,2026-12-14,2026-12-19,,
+period,pengolahan-nilai,Libur dan pengolahan nilai,Break and grade processing,2026-12-21,2027-01-08,,
+window,krs,Pengisian KRS (registrasi mata kuliah),Course registration (KRS),2026-08-17,2026-08-28,Lewat portal akademik,Through the academic portal
+window,add-drop,Perubahan KRS (tambah/batal),Add/drop period,2026-08-31,2026-09-11,Lewat portal akademik,Through the academic portal
+window,cuti,Pengajuan cuti akademik,Academic leave applications,2026-08-17,2026-10-09,Formulir cuti di portal akademik,Leave form in the academic portal
+window,pembatalan,Pembatalan mata kuliah (nilai W),Course withdrawal (W grade),2026-09-14,2026-10-16,Lewat portal akademik; tanpa pengembalian biaya,Through the academic portal; no refund
+window,ukt-2,Pembayaran UKT cicilan 2,Tuition installment 2 payment,2026-10-01,2026-10-15,,
+window,uts,Pelaksanaan UTS,Midterm exams,2026-10-19,2026-10-24,,
+window,uts-susulan,Pengajuan ujian susulan UTS,Make-up midterm requests,2026-10-19,2026-10-28,Paling lambat 2 hari kerja setelah jadwal ujian,No later than 2 working days after the missed exam
+window,ukt-3,Pembayaran UKT cicilan 3,Tuition installment 3 payment,2026-11-16,2026-11-30,,
+window,uas,Pelaksanaan UAS,Final exams,2026-12-14,2026-12-19,,
+window,libur-natal,Libur Natal,Christmas holiday,2026-12-24,2026-12-26,,
+window,nilai,Publikasi nilai akhir semester,Final grades published,2027-01-08,2027-01-08,,
+window,banding-nilai,Pengajuan banding nilai akhir,Final grade appeals,2027-01-08,2027-01-15,,

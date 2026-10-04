@@ -1,0 +1,28 @@
+[project]
+name = "sigap"
+version = "0.1.0"
+description = "Sigap — Smart School Service Center: deadlines, cited campus rules and honest handoff, as MCP tools plus a web chat."
+requires-python = ">=3.11"
+dependencies = [
+    "fastapi>=0.110",
+    "uvicorn>=0.29",
+    "mcp>=1.2,<2.0.0",
+    "httpx>=0.28.1",
+    "sqlmodel>=0.0.47",
+    "alembic>=1.20.0",
+    "argon2-cffi>=25.1.0",
+]
+
+[project.scripts]
+sigap-mcp = "sigap.mcp_server:main"
+sigap-server = "sigap.web:main"
+sigap-web = "sigap.web:main"
+sigap-eval = "sigap.evaluate:main"
+sigap-admin = "sigap.cli:main"
+
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
+[tool.hatch.build.targets.wheel]
+packages = ["sigap"]

@@ -1,0 +1,49 @@
+qid,set,expected,question_id,question_en
+P01,policy,3.1,Berapa persen kehadiran minimal supaya boleh ikut UAS?,What is the minimum attendance to sit the final exam?
+P02,policy,3.2,"Kalau sakit dan tidak hadir, gimana cara izinnya?","I was sick and missed class, how do I get an excused absence?"
+P03,policy,4.1,Boleh kirim tugas lewat email kalau LMS error?,Can I email my assignment if the LMS is down?
+P04,policy,4.2,"Kalau telat submit tugas, masih dinilai nggak?","If I submit my assignment late, is it still graded?"
+P05,policy,4.2,Berapa potongan nilai kalau telat kumpul tugas 2 hari?,What is the penalty for submitting an assignment 2 days late?
+P06,policy,4.3,Bisa minta perpanjangan deadline tugas ke dosen?,Can I ask my lecturer for a deadline extension?
+P07,policy,4.4,Boleh pakai ChatGPT buat tugas?,Am I allowed to use ChatGPT for assignments?
+P08,policy,4.4,Apa sanksi plagiarisme?,What is the sanction for plagiarism?
+P09,policy,5.1,"Saya sakit pas UTS, bisa ujian susulan?","I was sick during the midterm, can I take a make-up exam?"
+P10,policy,5.2,Apa syarat untuk ikut UTS?,What are the requirements to sit the midterm exam?
+P11,policy,5.3,Kalau telat masuk ujian online 20 menit masih boleh ikut?,"If I join the online exam 20 minutes late, can I still take it?"
+P12,policy,5.3,Kamera harus nyala waktu ujian daring?,Does my camera need to be on during online exams?
+P13,policy,6.1,Nilai minimal lulus mata kuliah apa?,What is the minimum passing grade for a course?
+P14,policy,6.2,Bagaimana cara banding nilai akhir?,How do I appeal my final grade?
+P15,policy,6.3,"Kalau dapat nilai D, bisa mengulang mata kuliah?","If I get a D, can I retake the course?"
+P16,policy,7.1,Bagaimana cara mengajukan cuti akademik?,How do I apply for academic leave?
+P17,policy,7.1,Berapa biaya cuti akademik?,How much is the academic leave fee?
+P18,policy,7.2,"Kalau membatalkan mata kuliah, di transkrip jadi apa?",What happens to my transcript if I withdraw from a course?
+P19,policy,8.1,Kalau telat bayar cicilan UKT apa akibatnya?,What happens if I pay my tuition installment late?
+P20,policy,9.2,"Saya lagi stres banget, ada layanan konseling?","I'm really stressed, is there a counselling service?"
+D01,dates,items=BD-T3|EN-R4|IMK-K2|SD-T4|APS-P1|MA-T3,Apa saja yang deadline minggu ini?,What's due this week?
+D02,dates,first=SD-UTS,Kapan UTS Struktur Data?,When is my Data Structures midterm?
+D03,dates,first=BD-K4,Kapan kuis Basis Data berikutnya?,When is the next Database quiz?
+D04,dates,items=EN-R4,Tugas apa yang deadline besok?,What is due tomorrow?
+D05,dates,first=APS-P1,Kapan deadline laporan progres proyek APS?,When is the Systems Analysis project report due?
+D06,dates,first=MA-UTS,Kapan UTS Statistika?,When is the Statistics midterm?
+D07,dates,week=5,Sekarang minggu ke berapa?,Which week of the term is it?
+D08,dates,topic=pembatalan:open:2026-10-16,Pembatalan mata kuliah masih dibuka?,Is the course withdrawal window still open?
+D09,dates,topic=cuti:open:2026-10-09,Sampai kapan pengajuan cuti akademik?,Until when can I apply for academic leave?
+D10,dates,topic=ukt-2:open:2026-10-15,Kapan batas bayar UKT cicilan 2?,When is the deadline for tuition installment 2?
+T01,trap,NOT_FOUND,"Nilai saya belum keluar 3 minggu, saya harus ke siapa?","My grade hasn't come out after 3 weeks, who should I contact?"
+T02,trap,NOT_FOUND,Boleh bawa kucing ke kampus?,Can I bring my cat to campus?
+T03,trap,NOT_FOUND,Berapa biaya parkir motor di kampus?,How much is motorcycle parking on campus?
+T04,trap,NOT_FOUND,Ada beasiswa untuk mahasiswa kelas karyawan?,Is there a scholarship for working students?
+T05,trap,NOT_FOUND,Apa password wifi kampus?,What is the campus wifi password?
+T06,trap,NOT_FOUND,Berapa nomor HP dosen Struktur Data?,What is my Data Structures lecturer's phone number?
+T07,trap,NOT_FOUND,Bisa pindah jurusan ke Informatika?,Can I switch my major to Computer Science?
+T08,trap,NOT_FOUND,Magang bisa dikonversi jadi SKS?,Can my internship be converted into credits?
+T09,trap,NOT_FOUND,Kapan wisuda tahun depan?,When is next year's graduation ceremony?
+T10,trap,NOT_FOUND,Asrama mahasiswa ada di mana?,Where is the student dormitory?
+R01,reminder,at=2026-10-04T21:00,Ingatkan aku jam 9 malam buat Tugas 3 Basis Data,Remind me at 9pm about Database Systems Assignment 3
+R02,reminder,at=2026-10-05T07:00,Ingetin Reading Response 4 besok jam 7 pagi,Remind me about Reading Response 4 tomorrow at 7am
+R03,reminder,at=2026-10-19T20:00,Ingatkan UTS Struktur Data sehari sebelumnya jam 8 malam,Remind me about the Data Structures midterm the day before at 8pm
+R04,reminder,at=2026-10-08T21:59,Ingatkan aku 2 jam sebelum deadline Tugas 4 Struktur Data,Remind me 2 hours before the Data Structures Assignment 4 deadline
+R05,reminder,at=2026-10-04T19:30,Ingatkan aku 30 menit lagi soal Tugas 3 Basis Data,Remind me in 30 minutes about Database Systems Assignment 3
+R06,reminder,plan,Buatkan pengingat untuk UTS Struktur Data,Set up reminders for my Data Structures midterm
+R07,reminder,invalid=after_due,Ingatkan Tugas 3 Basis Data besok jam 9 pagi,Remind me about Database Systems Assignment 3 tomorrow at 9am
+R08,reminder,invalid=past,Ingatkan Tugas 3 Statistika hari ini jam 10 pagi,Remind me about Statistics Assignment 3 today at 10am

@@ -1,0 +1,41 @@
+services:
+  langflow:
+    image: ${LANGFLOW_IMAGE:-docker.io/langflowai/langflow:latest}
+    ports:
+      - 127.0.0.1:${HOST_PORT:-7860}:${LANGFLOW_PORT:-7860}  # localhost only: just the Sigap backend talks to Langflow
+    environment:
+      LANGFLOW_HOST: ${LANGFLOW_HOST:-localhost}
+      LANGFLOW_PORT: ${LANGFLOW_PORT:-7860}
+      LANGFLOW_CONFIG_DIR: ${LANGFLOW_CONFIG_DIR:-/app/langflow}
+      LANGFLOW_DATABASE_URL: ${LANGFLOW_DATABASE_URL:-sqlite:////app/langflow/langflow.db}
+      LANGFLOW_AUTO_LOGIN: ${LANGFLOW_AUTO_LOGIN:-true}
+      LANGFLOW_SUPERUSER: ${LANGFLOW_SUPERUSER:-langflow}
+      LANGFLOW_SUPERUSER_PASSWORD: ${LANGFLOW_SUPERUSER_PASSWORD}
+      LANGFLOW_SSRF_PROTECTION_ENABLED: ${LANGFLOW_SSRF_PROTECTION_ENABLED:-true}
+      LANGFLOW_SSRF_ALLOWED_HOSTS: ${LANGFLOW_SSRF_ALLOWED_HOSTS}
+      DO_NOT_TRACK: ${DO_NOT_TRACK:-true}
+    volumes:
+      - langflow-data:/app/langflow:rw
+    healthcheck:
+      test:
+        [
+          "CMD",
+          "curl",
+          "-f",
+          "http://${LANGFLOW_HOST:-localhost}:${LANGFLOW_PORT:-7860}/health_check",
+        ]
+      interval: 30s
+      timeout: 10s
+      retries: 5
+      start_period: 30s
+    deploy:
+      resources:
+        limits:
+          cpus: ${LANGFLOW_CPUS_LIMIT:-1.0}
+          memory: ${LANGFLOW_MEM_LIMIT:-2g}
+        reservations:
+          cpus: ${LANGFLOW_CPUS_RESERVATION:-0.25}
+          memory: ${LANGFLOW_MEM_RESERVATION:-256m}
+
+volumes:
+  langflow-data:

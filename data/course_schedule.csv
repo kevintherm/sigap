@@ -1,0 +1,28 @@
+item_id,course_code,title_id,title_en,type,due_date,due_time,end_time,where,source
+SD-T3,IF2101,Tugas 3: Stack dan Queue,Assignment 3: Stacks and Queues,assignment,2026-09-24,23:59,,LMS › Struktur Data › Tugas 3,RPS IF2101 rev. Agustus 2026
+MA-K3,MA2102,Kuis 3: Distribusi Peluang,Quiz 3: Probability Distributions,quiz,2026-10-02,20:00,20:45,LMS › Statistika › Kuis 3,RPS MA2102 rev. Agustus 2026
+BD-T3,SI2203,Tugas 3: ERD Toko Online,Assignment 3: Online Store ERD,assignment,2026-10-04,23:59,,LMS › Basis Data › Tugas 3,RPS SI2203 rev. Agustus 2026
+EN-R4,UM2001,Reading Response 4,Reading Response 4,assignment,2026-10-05,23:59,,LMS › Bahasa Inggris Akademik › Reading Response 4,RPS UM2001 rev. Agustus 2026
+IMK-K2,SI2207,Kuis 2: Prinsip Usability,Quiz 2: Usability Principles,quiz,2026-10-07,19:00,19:45,LMS › IMK › Kuis 2,RPS SI2207 rev. Agustus 2026
+SD-T4,IF2101,Tugas 4: Implementasi Linked List,Assignment 4: Linked List Implementation,assignment,2026-10-08,23:59,,LMS › Struktur Data › Tugas 4,RPS IF2101 rev. Agustus 2026
+APS-P1,SI2105,Laporan Progres Proyek 1,Project Progress Report 1,project,2026-10-09,23:59,,LMS › APS › Proyek Kelompok,RPS SI2105 rev. Agustus 2026
+MA-T3,MA2102,Tugas 3: Regresi Linear,Assignment 3: Linear Regression,assignment,2026-10-10,23:59,,LMS › Statistika › Tugas 3,RPS MA2102 rev. Agustus 2026
+EN-E1,UM2001,Draf Esai Argumentatif,Argumentative Essay Draft,assignment,2026-10-12,23:59,,LMS › Bahasa Inggris Akademik › Essay,RPS UM2001 rev. Agustus 2026
+BD-K4,SI2203,Kuis 4: Normalisasi,Quiz 4: Normalization,quiz,2026-10-14,19:00,19:45,LMS › Basis Data › Kuis 4,RPS SI2203 rev. Agustus 2026
+IMK-T2,SI2207,Tugas 2: Prototipe Wireframe,Assignment 2: Wireframe Prototype,assignment,2026-10-16,23:59,,LMS › IMK › Tugas 2,RPS SI2207 rev. Agustus 2026
+BD-UTS,SI2203,UTS Basis Data,Database Systems Midterm Exam,exam,2026-10-19,13:00,15:00,Ujian daring via LMS (proctoring),Jadwal UTS Ganjil 2026/2027
+SD-UTS,IF2101,UTS Struktur Data,Data Structures Midterm Exam,exam,2026-10-20,08:00,10:00,Ujian daring via LMS (proctoring),Jadwal UTS Ganjil 2026/2027
+APS-UTS,SI2105,UTS Analisis dan Perancangan Sistem,Systems Analysis and Design Midterm Exam,exam,2026-10-21,08:00,10:00,Ujian daring via LMS (proctoring),Jadwal UTS Ganjil 2026/2027
+MA-UTS,MA2102,UTS Statistika,Statistics Midterm Exam,exam,2026-10-22,10:00,12:00,Ujian daring via LMS (proctoring),Jadwal UTS Ganjil 2026/2027
+IMK-UTS,SI2207,UTS Interaksi Manusia dan Komputer,Human-Computer Interaction Midterm Exam,exam,2026-10-23,13:00,15:00,Ujian daring via LMS (proctoring),Jadwal UTS Ganjil 2026/2027
+EN-UTS,UM2001,UTS Bahasa Inggris Akademik,Academic English Midterm Exam,exam,2026-10-24,08:00,10:00,Ujian daring via LMS (proctoring),Jadwal UTS Ganjil 2026/2027
+SD-T5,IF2101,Tugas 5: Binary Search Tree,Assignment 5: Binary Search Trees,assignment,2026-11-05,23:59,,LMS › Struktur Data › Tugas 5,RPS IF2101 rev. Agustus 2026
+EN-E2,UM2001,Esai Argumentatif Final,Final Argumentative Essay,assignment,2026-11-09,23:59,,LMS › Bahasa Inggris Akademik › Essay,RPS UM2001 rev. Agustus 2026
+APS-P2,SI2105,Laporan Progres Proyek 2,Project Progress Report 2,project,2026-11-13,23:59,,LMS › APS › Proyek Kelompok,RPS SI2105 rev. Agustus 2026
+BD-P1,SI2203,Proyek Akhir Basis Data,Database Final Project,project,2026-12-04,23:59,,LMS › Basis Data › Proyek Akhir,RPS SI2203 rev. Agustus 2026
+BD-UAS,SI2203,UAS Basis Data,Database Systems Final Exam,exam,2026-12-14,13:00,15:00,Ujian daring via LMS (proctoring),Jadwal UAS Ganjil 2026/2027
+SD-UAS,IF2101,UAS Struktur Data,Data Structures Final Exam,exam,2026-12-15,08:00,10:00,Ujian daring via LMS (proctoring),Jadwal UAS Ganjil 2026/2027
+APS-UAS,SI2105,UAS Analisis dan Perancangan Sistem,Systems Analysis and Design Final Exam,exam,2026-12-16,08:00,10:00,Ujian daring via LMS (proctoring),Jadwal UAS Ganjil 2026/2027
+MA-UAS,MA2102,UAS Statistika,Statistics Final Exam,exam,2026-12-17,10:00,12:00,Ujian daring via LMS (proctoring),Jadwal UAS Ganjil 2026/2027
+IMK-UAS,SI2207,UAS Interaksi Manusia dan Komputer,Human-Computer Interaction Final Exam,exam,2026-12-18,13:00,15:00,Ujian daring via LMS (proctoring),Jadwal UAS Ganjil 2026/2027
+EN-UAS,UM2001,UAS Bahasa Inggris Akademik,Academic English Final Exam,exam,2026-12-19,08:00,10:00,Ujian daring via LMS (proctoring),Jadwal UAS Ganjil 2026/2027

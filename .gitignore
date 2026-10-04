@@ -1,0 +1,6 @@
+.env
+eval/results/
+outbox/
+__pycache__/
+var/
+.venv/

@@ -1,0 +1,45 @@
+<!doctype html>
+<html lang="id">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Sigap Admin</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://api.fontshare.com">
+<link href="https://api.fontshare.com/v2/css?f[]=general-sans@700&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=DM+Sans:opsz,wght@9..40,400;9..40,500&family=JetBrains+Mono:wght@400&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="/admin/static/app.css">
+</head>
+<body>
+<div id="login" class="login dotgrid" hidden>
+  <form id="login-form" class="login-card">
+    <div class="brand-row"><div class="logo">S</div><div><b>Sigap Admin</b><span>Smart School Service Center</span></div></div>
+    <label>Email<input name="email" type="email" autocomplete="username" required></label>
+    <label>Kata sandi<input name="password" type="password" autocomplete="current-password" required></label>
+    <p class="error" id="login-error" role="alert"></p>
+    <button class="btn primary" type="submit">Masuk</button>
+  </form>
+</div>
+
+<div id="app" class="shell" hidden>
+  <aside class="nav">
+    <div class="brand-row"><div class="logo">S</div><div><b>Sigap</b><span>Panel admin</span></div></div>
+    <nav id="nav"></nav>
+    <div class="nav-foot">
+      <div id="me" class="me"></div>
+      <button class="btn ghost small" id="logout">Keluar</button>
+    </div>
+  </aside>
+  <main>
+    <header class="topbar">
+      <button class="btn ghost small menu" id="menu" aria-label="Menu">☰</button>
+      <h1 id="title"></h1>
+      <div class="sync" id="sync" title="Sinkronisasi data ke Langflow"></div>
+    </header>
+    <section id="view" class="view"></section>
+  </main>
+</div>
+<div id="toast" class="toast" role="status" hidden></div>
+<script src="/admin/static/app.js"></script>
+</body>
+</html>
