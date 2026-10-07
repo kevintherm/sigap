@@ -38,14 +38,34 @@ The rule that keeps it honest: **dates come from tables, rules come from documen
 
 ## Run it
 
+The whole stack runs in Docker Compose: **Langflow**, the **backend** (admin panel, student portal, MCP gateway,
+Telegram bot) and a Cloudflare **tunnel** for a public https address. All three restart on their own after a reboot.
+
 ```bash
-docker compose up -d                       # Langflow at http://localhost:7860 (localhost only)
+docker compose up -d --build               # Langflow, backend and tunnel; --build after code changes
+docker compose logs tunnel | grep -o 'https://[a-z0-9-]*\.trycloudflare\.com' | tail -1   # today's public address
+docker compose ps                          # all three should be "healthy" / "Up"
+docker compose down                        # stop everything (data stays in var/ and the langflow-data volume)
+```
+
+- Admin panel: http://127.0.0.1:8000/admin (or the tunnel address + `/admin`); student portal: `/student`;
+  MCP gateway: `/mcp`. Langflow: http://localhost:7860 (this machine only).
+- The quick-tunnel address changes on every start; the backend reads the current one from the tunnel itself, so
+  the bot's sign-in links always work. Set `SIGAP_PUBLIC_URL` in `.env` to use your own domain instead.
+- The database (`var/sigap.db`) and the outbox stay on your disk, mounted into the backend container.
+
+First-time setup, and anything that runs on your machine rather than in a container:
+
+```bash
 uv sync
 uv run sigap-admin seed-demo               # database + synthetic demo data; prints panel passwords ONCE
 set -a; . ./.env; set +a
-python3 langflow/build_flows.py            # create/update the five flows (needs LANGFLOW_API_KEY)
-uv run sigap-server                        # backend: http://127.0.0.1:8000/admin
+python3 langflow/build_flows.py            # create/update the flows in Langflow (needs LANGFLOW_API_KEY)
+uv run sigap-eval                          # golden-set tests
 ```
+
+Without Docker for the backend: `docker compose up -d langflow`, then `uv run sigap-server`
+(http://127.0.0.1:8000).
 
 The demo accounts from `seed-demo` are `admin@und.ac.id` (admin), `hendra@und.ac.id` (student services) and
 `rina@und.ac.id` (lecturer of IF2101). The demo students are `2401001` Dinda (6 courses), `2401002` Raka (3 courses)
@@ -57,7 +77,7 @@ and `2401003` Sinta (3 courses). All data is synthetic.
 |---|---|
 | `LANGFLOW_URL`, `LANGFLOW_API_KEY` | The backend's service key for Langflow |
 | `TELEGRAM_BOT_TOKEN` | Turns on the bot (from @BotFather). Long polling, no public URL needed |
-| `SIGAP_PUBLIC_URL` | Base URL shown in the bot's `/token` message (default `http://localhost:8000`) |
+| `SIGAP_PUBLIC_URL` | Fixed public address for sign-in links and the MCP URL. Unset in compose: the tunnel's current address is used |
 | `SIGAP_DATABASE_URL` | Default `sqlite:///var/sigap.db` |
 | `SIGAP_NOW` | Pins the backend clock for demos, e.g. `2026-10-04T19:00` (the flows have their own "Demo time" field) |
 | `SIGAP_MCP_ESCALATIONS_PER_DAY`, `SIGAP_MCP_REQUESTS_PER_MINUTE` | Gateway limits (default 5 and 60) |

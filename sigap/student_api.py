@@ -21,6 +21,7 @@ from sqlmodel import Session, func, or_, select
 
 from . import channels, mailer
 from .chat import Who, chat_service
+from .config import public_url
 from .db import get_session
 from .models import (ApiToken, ChannelAccount, Handoff, HandoffEvent, LinkRequest, Student, StudentLoginCode,
                      StudentSession, utcnow)
@@ -156,7 +157,7 @@ def me(st: Student = Depends(current_student), db: Session = Depends(get_session
         "tokens": [{"id": t.id, "prefix": t.prefix, "label": t.label, "created_at": t.created_at.isoformat(),
                     "last_used_at": t.last_used_at.isoformat() if t.last_used_at else None, "revoked": bool(t.revoked_at)} for t in toks],
         "tickets": tickets,
-        "mcp_url": os.environ.get("SIGAP_PUBLIC_URL", "http://localhost:8000").rstrip("/") + "/mcp",
+        "mcp_url": public_url() + "/mcp",
         "bot_username": os.environ.get("TELEGRAM_BOT_USERNAME"),
         "privacy": privacy_facts(),
     }

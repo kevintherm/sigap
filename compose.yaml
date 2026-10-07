@@ -1,6 +1,9 @@
+# The whole Sigap stack: `docker compose up -d --build` starts Langflow, then the backend, then the public tunnel.
+# All three restart on their own after a reboot (restart: unless-stopped).
 services:
   langflow:
     image: ${LANGFLOW_IMAGE:-docker.io/langflowai/langflow:latest}
+    restart: unless-stopped
     ports:
       - 127.0.0.1:${HOST_PORT:-7860}:${LANGFLOW_PORT:-7860}  # localhost only: just the Sigap backend talks to Langflow
     environment:
@@ -29,9 +32,9 @@ services:
           "-f",
           "http://${LANGFLOW_HOST:-localhost}:${LANGFLOW_PORT:-7860}/health_check",
         ]
-      interval: 30s
+      interval: 10s
       timeout: 10s
-      retries: 5
+      retries: 10
       start_period: 30s
     deploy:
       resources:
@@ -41,6 +44,42 @@ services:
         reservations:
           cpus: ${LANGFLOW_CPUS_RESERVATION:-0.25}
           memory: ${LANGFLOW_MEM_RESERVATION:-256m}
+
+  backend:
+    build: .
+    image: sigap-backend
+    restart: unless-stopped
+    depends_on:
+      langflow:
+        condition: service_healthy
+    env_file: .env
+    environment:
+      LANGFLOW_URL: http://langflow:7860  # inside the compose network, not localhost
+      # Sign-in links and the MCP URL use the tunnel's current address, read from cloudflared at runtime.
+      SIGAP_PUBLIC_URL_FROM: http://tunnel:2000/quicktunnel
+      FORWARDED_ALLOW_IPS: "*"  # trust the tunnel's X-Forwarded-Proto, so login cookies are marked Secure
+    user: "${UID:-1000}:${GID:-1000}"  # database files in var/ stay owned by you
+    volumes:
+      - ./var:/app/var
+      - ./outbox:/app/outbox
+    ports:
+      - 127.0.0.1:8000:8000  # admin panel, student portal and MCP gateway on this machine
+    healthcheck:
+      test: ["CMD", "/app/.venv/bin/python", "-c", "import urllib.request; urllib.request.urlopen('http://localhost:8000/health', timeout=5)"]
+      interval: 15s
+      timeout: 10s
+      retries: 5
+      start_period: 20s
+
+  tunnel:
+    # Cloudflare quick tunnel: a public https address for the backend, new on every start. Remove this service
+    # (or set SIGAP_PUBLIC_URL to your own domain) if you do not want Sigap reachable from outside.
+    image: docker.io/cloudflare/cloudflared:latest
+    restart: unless-stopped
+    command: tunnel --no-autoupdate --metrics 0.0.0.0:2000 --url http://backend:8000
+    depends_on:
+      backend:
+        condition: service_started
 
 volumes:
   langflow-data:

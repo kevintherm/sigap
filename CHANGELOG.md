@@ -3,6 +3,18 @@
 Notes for people and agents working on this repo: what changed, why, and what not to undo.
 Newest first. Work listed here may still be uncommitted; check `git status`.
 
+## 2026-10-08: Whole stack in Docker Compose (other session)
+
+- `compose.yaml` now runs `langflow`, `backend` (new `Dockerfile`) and `tunnel` (cloudflared quick tunnel), all
+  `restart: unless-stopped`, so the stack comes back after a reboot. The backend waits for Langflow to be healthy,
+  reaches it at `http://langflow:7860`, mounts `var/` and `outbox/`, runs as UID 1000, and listens on
+  `127.0.0.1:8000` (Bob's MCP config at `localhost:8000/mcp` keeps working).
+- `sigap/config.py`: `public_url()`: `SIGAP_PUBLIC_URL` if set, otherwise the tunnel's current address from
+  cloudflared's metrics endpoint (`SIGAP_PUBLIC_URL_FROM`). Used by the bot's sign-in link, `/token` and the portal.
+- `FORWARDED_ALLOW_IPS="*"` for the backend so login cookies stay `Secure` behind the tunnel (verified).
+- `.env` gained `SIGAP_NOW=2026-10-04T19:00` (demo clock), previously passed on the command line.
+- Do not run `uv run sigap-server` while the compose backend is up: both want port 8000 and the Telegram bot.
+
 ## 2026-10-04 (~20:15): README future vision; retention covers the formatter flow
 
 - `README.md`: "Not done yet" replaced by "Future vision" with two directions only: integration with existing

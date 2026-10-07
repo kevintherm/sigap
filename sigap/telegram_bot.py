@@ -15,7 +15,7 @@ import httpx
 from . import channels
 from .agent import intro
 from .chat import Who, chat_service
-from .config import WIB
+from .config import WIB, public_url
 from .db import session_scope
 from .langflow_client import backend_name
 from .services import create_link_request, schedule_reminders
@@ -126,7 +126,7 @@ class TelegramBot:
             name = f"{name or ''} (@{sender['username']})".strip()
         with session_scope() as db:
             state = create_link_request(db, CHANNEL, who.external_id, name)
-        url = os.environ.get("SIGAP_PUBLIC_URL", "http://localhost:8000").rstrip("/") + f"/student?link={state}"
+        url = public_url() + f"/student?link={state}"
         text = _t(lang, "🔐 Hubungkan akun kampusmu: masuk dengan kode yang dikirim ke email kampus. Tautan berlaku 10 menit dan hanya untuk chat ini.",
                   "🔐 Link your campus account: sign in with a code sent to your campus email. The link is valid for 10 minutes and only for this chat.")
         if url.startswith("https://"):
@@ -246,7 +246,7 @@ class TelegramBot:
             token = await asyncio.to_thread(chat_service.new_token, who)
             if not token:
                 return await self.send_text(chat_id, _t(lang, "Hubungkan akunmu dulu.", "Link your account first."))
-            url = os.environ.get("SIGAP_PUBLIC_URL", "http://localhost:8000").rstrip("/") + "/mcp"
+            url = public_url() + "/mcp"
             await self.send_text(chat_id, _t(
                 lang, "🔑 Token MCP pribadimu (hanya ditampilkan sekali, jangan dibagikan):",
                 "🔑 Your personal MCP token (shown once, don't share it):") +

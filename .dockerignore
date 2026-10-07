@@ -1,0 +1,12 @@
+.env
+.venv
+var
+outbox
+eval
+anti-slop
+docs
+langflow
+bob
+**/__pycache__
+.git
+*.pdf

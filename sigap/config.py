@@ -39,3 +39,33 @@ def now() -> datetime:
         dt = datetime.fromisoformat(fixed)
         return dt if dt.tzinfo else dt.replace(tzinfo=WIB)
     return datetime.now(WIB)
+
+
+_tunnel_cache: dict = {}
+
+
+def public_url() -> str:
+    """The address students and staff reach Sigap on (sign-in links, MCP URL). SIGAP_PUBLIC_URL wins; otherwise,
+    with SIGAP_PUBLIC_URL_FROM set to a cloudflared metrics URL (http://tunnel:2000/quicktunnel), the current
+    quick-tunnel address is asked from cloudflared, since it changes on every start."""
+    fixed = os.environ.get("SIGAP_PUBLIC_URL", "").strip()
+    if fixed:
+        return fixed.rstrip("/")
+    source = os.environ.get("SIGAP_PUBLIC_URL_FROM", "").strip()
+    if source:
+        import json
+        import time
+        import urllib.request
+        if _tunnel_cache.get("url") and time.time() - _tunnel_cache["at"] < 300:
+            return _tunnel_cache["url"]
+        try:
+            with urllib.request.urlopen(source, timeout=2) as r:
+                host = json.load(r).get("hostname", "")
+            if host:
+                _tunnel_cache.update(url=f"https://{host}", at=time.time())
+                return _tunnel_cache["url"]
+        except (OSError, ValueError):
+            pass  # tunnel not up yet: fall back below, ask again next time
+        if _tunnel_cache.get("url"):
+            return _tunnel_cache["url"]
+    return "http://localhost:8000"
