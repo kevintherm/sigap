@@ -26,3 +26,20 @@ APS-UAS,SI2105,UAS Analisis dan Perancangan Sistem,Systems Analysis and Design F
 MA-UAS,MA2102,UAS Statistika,Statistics Final Exam,exam,2026-12-17,10:00,12:00,Ujian daring via LMS (proctoring),Jadwal UAS Ganjil 2026/2027
 IMK-UAS,SI2207,UAS Interaksi Manusia dan Komputer,Human-Computer Interaction Final Exam,exam,2026-12-18,13:00,15:00,Ujian daring via LMS (proctoring),Jadwal UAS Ganjil 2026/2027
 EN-UAS,UM2001,UAS Bahasa Inggris Akademik,Academic English Final Exam,exam,2026-12-19,08:00,10:00,Ujian daring via LMS (proctoring),Jadwal UAS Ganjil 2026/2027
+APS-K2,SI2105,Kuis 2: Use Case Diagram,Quiz 2: Use Case Diagrams,quiz,2026-10-12,20:00,20:45,LMS › APS › Kuis 2,RPS SI2105 rev. Agustus 2026
+SD-K2,IF2101,Kuis 2: Linked List,Quiz 2: Linked Lists,quiz,2026-10-13,19:00,19:45,LMS › Struktur Data › Kuis 2,RPS IF2101 rev. Agustus 2026
+MA-T4,MA2102,Tugas 4: Uji Hipotesis,Assignment 4: Hypothesis Testing,assignment,2026-10-15,23:59,,LMS › Statistika › Tugas 4,RPS MA2102 rev. Agustus 2026
+EN-R5,UM2001,Reading Response 5,Reading Response 5,assignment,2026-10-17,23:59,,LMS › Bahasa Inggris Akademik › Reading Response 5,RPS UM2001 rev. Agustus 2026
+SD-K3,IF2101,Kuis 3: Tree dan Traversal,Quiz 3: Trees and Traversal,quiz,2026-10-29,19:00,19:45,LMS › Struktur Data › Kuis 3,RPS IF2101 rev. Agustus 2026
+BD-T4,SI2203,Tugas 4: Query SQL Lanjutan,Assignment 4: Advanced SQL Queries,assignment,2026-10-30,23:59,,LMS › Basis Data › Tugas 4,RPS SI2203 rev. Agustus 2026
+IMK-T3,SI2207,Tugas 3: Uji Usabilitas,Assignment 3: Usability Testing,assignment,2026-11-02,23:59,,LMS › IMK › Tugas 3,RPS SI2207 rev. Agustus 2026
+MA-K4,MA2102,Kuis 4: Regresi Berganda,Quiz 4: Multiple Regression,quiz,2026-11-04,20:00,20:45,LMS › Statistika › Kuis 4,RPS MA2102 rev. Agustus 2026
+EN-R6,UM2001,Reading Response 6,Reading Response 6,assignment,2026-11-16,23:59,,LMS › Bahasa Inggris Akademik › Reading Response 6,RPS UM2001 rev. Agustus 2026
+BD-K5,SI2203,Kuis 5: Transaksi dan Indeks,Quiz 5: Transactions and Indexes,quiz,2026-11-18,19:00,19:45,LMS › Basis Data › Kuis 5,RPS SI2203 rev. Agustus 2026
+SD-T6,IF2101,"Tugas 6: Graf, BFS dan DFS","Assignment 6: Graphs, BFS and DFS",assignment,2026-11-19,23:59,,LMS › Struktur Data › Tugas 6,RPS IF2101 rev. Agustus 2026
+IMK-K3,SI2207,Kuis 3: Evaluasi Heuristik,Quiz 3: Heuristic Evaluation,quiz,2026-11-24,19:00,19:45,LMS › IMK › Kuis 3,RPS SI2207 rev. Agustus 2026
+IMK-P1,SI2207,Proyek Desain Aplikasi,App Design Project,project,2026-11-27,23:59,,LMS › IMK › Proyek Akhir,RPS SI2207 rev. Agustus 2026
+MA-P1,MA2102,Proyek Analisis Data,Data Analysis Project,project,2026-12-02,23:59,,LMS › Statistika › Proyek Akhir,RPS MA2102 rev. Agustus 2026
+APS-P3,SI2105,Laporan Akhir Proyek Kelompok,Final Group Project Report,project,2026-12-07,23:59,,LMS › APS › Proyek Kelompok,RPS SI2105 rev. Agustus 2026
+EN-P1,UM2001,Presentasi Akhir,Final Presentation,project,2026-12-09,10:00,12:00,LMS › Bahasa Inggris Akademik › Presentasi Akhir,RPS UM2001 rev. Agustus 2026
+SD-P1,IF2101,Proyek Akhir Struktur Data,Data Structures Final Project,project,2026-12-10,23:59,,LMS › Struktur Data › Proyek Akhir,RPS IF2101 rev. Agustus 2026

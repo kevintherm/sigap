@@ -221,8 +221,8 @@ class {cls}(Component):
     inputs = [
         MessageTextInput(name="input_value", display_name="Input", info={input_info!r}, required=True, tool_mode=True),
 {data_inputs}
-        StrInput(name="demo_now", display_name="Demo time (WIB)", value="2026-10-04T19:00", advanced=True,
-                 info="Pins 'now' for reproducible demos, e.g. 2026-10-04T19:00. Empty = real clock."),
+        StrInput(name="demo_now", display_name="Demo time (WIB)", value="", advanced=True,
+                 info="Pins 'now', e.g. 2026-10-04T19:00. Empty = real clock. The backend sets it per request when SIGAP_NOW is set (tests, demos)."),
 {action_input}
 {extra_inputs}
     ]
@@ -550,7 +550,7 @@ def build_flow(lf: Langflow, catalog: dict, tool: dict, code: str) -> dict:
             t["should_store_message"]["value"] = False
 
     n_in = _node(_rid("ChatInput"), "ChatInput", chat_in, 0, 120)
-    n_tool = _node(_rid(tool["class"]), tool["class"], custom, 420, 0)
+    n_tool = _node(f"{tool['class']}-tool", tool["class"], custom, 420, 0)  # fixed id: the backend tweaks demo_now on it
     n_out = _node(_rid("ChatOutput"), "ChatOutput", chat_out, 900, 120)
 
     in_out = next(o for o in chat_in["outputs"] if o["name"] == "message")

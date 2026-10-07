@@ -79,7 +79,7 @@ and `2401003` Sinta (3 courses). All data is synthetic.
 | `TELEGRAM_BOT_TOKEN` | Turns on the bot (from @BotFather). Long polling, no public URL needed |
 | `SIGAP_PUBLIC_URL` | Fixed public address for sign-in links and the MCP URL. Unset in compose: the tunnel's current address is used |
 | `SIGAP_DATABASE_URL` | Default `sqlite:///var/sigap.db` |
-| `SIGAP_NOW` | Pins the backend clock for demos, e.g. `2026-10-04T19:00` (the flows have their own "Demo time" field) |
+| `SIGAP_NOW` | Unset = real date. Set (e.g. `2026-10-04T19:00`) to pin the clock for a recorded demo; the backend passes it to the Langflow tools per request. The tests always pin 4 Oct 2026 19:00 themselves |
 | `SIGAP_MCP_ESCALATIONS_PER_DAY`, `SIGAP_MCP_REQUESTS_PER_MINUTE` | Gateway limits (default 5 and 60) |
 | `SIGAP_SHOW_TRACE` | `0` hides the "🔧 tool — via langflow" line in Telegram |
 | `SIGAP_AGENT` | `langflow` = Gemini agent understands messages; `rules` = keyword router |

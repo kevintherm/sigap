@@ -3,6 +3,17 @@
 Notes for people and agents working on this repo: what changed, why, and what not to undo.
 Newest first. Work listed here may still be uncommitted; check `git status`.
 
+## 2026-10-08 (~01:00): Real date, more schedule items (other session)
+
+- The bot now runs on the real date: `SIGAP_NOW` is commented out in `.env`, and the Langflow tools' "Demo time"
+  default is empty. When `SIGAP_NOW` is set (the test runner always sets it), `LangflowTools` passes it as a
+  per-request tweak (`demo_now`) to the tool components, so tests and recorded demos still get a fixed date.
+  Tool nodes in the per-tool flows now have fixed ids (`<Class>-tool`) for that tweak.
+- 17 new schedule items (quizzes, assignments, projects for all six courses, 12 Oct to 10 Dec) in the database and
+  `data/course_schedule.csv`. None fall in 4 to 10 Oct, so the date tests are unchanged (96/96).
+- Reminders were never broken, but with the demo clock a reminder like "1 jam sebelum deadline" for 4 Oct was
+  already in the past by the real clock and silently skipped. Live test: a reminder reached Telegram on time.
+
 ## 2026-10-08: Whole stack in Docker Compose (other session)
 
 - `compose.yaml` now runs `langflow`, `backend` (new `Dockerfile`) and `tunnel` (cloudflared quick tunnel), all

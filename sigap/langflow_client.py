@@ -18,6 +18,19 @@ class LangflowError(RuntimeError):
     pass
 
 
+# Component class of each tool flow, for per-request tweaks (node ids are "<class>-tool" and "<class>-agent").
+TOOL_CLASSES = {"answer_campus_policy": "SigapAnswerCampusPolicy", "get_my_deadlines": "SigapGetMyDeadlines",
+                "get_study_period": "SigapGetStudyPeriod", "create_study_reminder": "SigapCreateStudyReminder",
+                "escalate_to_student_services": "SigapEscalateToStudentServices"}
+
+
+def _demo_tweak() -> dict:
+    """With SIGAP_NOW set (tests, a recorded demo), the Langflow tools use the same pinned time as the backend;
+    without it they use the real clock."""
+    now = os.environ.get("SIGAP_NOW", "").strip()
+    return {"demo_now": now} if now else {}
+
+
 class LangflowTools:
     def __init__(self, url: str | None = None, api_key: str | None = None, timeout: float = 60):
         self.url = (url or os.environ.get("LANGFLOW_URL", "http://localhost:7860")).rstrip("/")
@@ -30,6 +43,8 @@ class LangflowTools:
     def run(self, flow: str, args: dict, session_id: str | None = None) -> dict:
         body = {"input_value": json.dumps({k: v for k, v in args.items() if v is not None}, ensure_ascii=False),
                 "input_type": "chat", "output_type": "chat"}
+        if demo := _demo_tweak():
+            body["tweaks"] = {f"{TOOL_CLASSES[flow]}-tool": demo}
         if session_id:
             body["session_id"] = session_id
         t0 = time.perf_counter()
@@ -58,6 +73,9 @@ class LangflowTools:
         Returns {"text", "steps": [{"tool", "input", "result"}], "langflow_ms"}."""
         tweaks = {"SigapGetMyDeadlines-agent": {"enrolled_courses": ",".join(courses or []) or "-"},
                   "SigapAnswerCampusPolicy-agent": {"student_message": text}}
+        if demo := _demo_tweak():
+            for cls in TOOL_CLASSES.values():
+                tweaks.setdefault(f"{cls}-agent", {}).update(demo)
         body = {"input_value": f"[SIGAP CONTEXT linked={'yes' if linked else 'no'}]\n{text}", "input_type": "chat",
                 "output_type": "chat", "session_id": session_id, "tweaks": tweaks}
         t0 = time.perf_counter()
